@@ -1,5 +1,6 @@
 import type { MonsterUnit } from '../../entities/Monster';
 import type { SkillId } from '../../types';
+import { antiAir, buffAdjacent, energyGain, execute, knockback, lifesteal, meteor, pierce, rage, regen } from './advanced';
 import { burnAura, groundFlyers, laneSlow, tauntAdjacentLanes } from './aura';
 import { crit, multiTarget, reflect, reviveOnce } from './combat';
 import { burn, chainLanes, poisonCloud, slowShot, splash, stunChance } from './onHit';
@@ -28,6 +29,16 @@ export const SKILLS: Record<SkillId, SkillHandler> = {
   row_shield: rowShield,
   crit,
   poison_cloud: poisonCloud,
+  meteor,
+  pierce,
+  regen,
+  knockback,
+  lifesteal,
+  energy_gain: energyGain,
+  buff_adjacent: buffAdjacent,
+  execute,
+  rage,
+  anti_air: antiAir,
 };
 
 const NONE: SkillHandler = {};

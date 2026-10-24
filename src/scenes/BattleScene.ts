@@ -1,15 +1,19 @@
 import Phaser from 'phaser';
-import { getData, getServices } from '../registry';
+import type { ArtSpec } from '../art';
+import { backgroundKey } from '../art/backgrounds';
+import { getArt, getData, getServices } from '../registry';
 import type { Services } from '../services';
 import { Battle } from '../systems/Battle';
 import { RandomBot } from '../systems/Bot';
 import { boardLeft, cellCenter } from '../systems/layout';
 import { optionKey } from '../systems/PickSystem';
+import { starRating } from '../systems/Progress';
 import { createRng } from '../systems/rng';
 import type { GameData } from '../types';
 import { Button } from '../ui/Button';
 import { showToast } from '../ui/Toast';
-import { COLORS, hexToNum, textStyle } from '../ui/theme';
+import { openSettings } from '../ui/SettingsPanel';
+import { COLORS, hexToNum, textStyle, titleStyle } from '../ui/theme';
 import { BattleFeedback } from '../views/BattleFeedback';
 import { BoardView, type DropFeedback } from '../views/BoardView';
 import { DebugPanel } from '../views/DebugPanel';
@@ -25,6 +29,7 @@ const END_DELAY_MS = 1600;
 /** 3분 전투 본체. Battle 모델을 매 프레임 진행시키고 화면에 그린다. */
 export class BattleScene extends Phaser.Scene {
   private gd!: GameData;
+  private art!: ReadonlyMap<string, ArtSpec>;
   private sv!: Services;
   private battle!: Battle;
   private board!: BoardView;
@@ -39,13 +44,17 @@ export class BattleScene extends Phaser.Scene {
   private ended = false;
   private pauseLayer: Phaser.GameObjects.Container | null = null;
   private tutorial: Phaser.GameObjects.Container | null = null;
+  /** 오늘의 도전 시드 (일반 판이면 null) */
+  private daily: number | null = null;
 
   constructor() {
     super('BattleScene');
   }
 
-  create(params: { stageId: number }): void {
+  create(params: { stageId: number; daily?: number }): void {
+    this.daily = params.daily ?? null;
     this.gd = getData(this);
+    this.art = getArt(this);
     this.sv = getServices(this);
     this.enemyViews = new Map();
     this.speed = 1;
@@ -56,13 +65,16 @@ export class BattleScene extends Phaser.Scene {
     this.tutorial = null;
 
     const save = this.sv.save.data;
-    this.battle = new Battle(this.gd, { stageId: params.stageId, rng: createRng(Date.now() >>> 0), discovered: save.discovered, hints: save.hints });
+    this.battle = new Battle(this.gd, { stageId: params.stageId, rng: createRng(this.daily ?? Date.now() >>> 0), discovered: save.discovered, hints: save.hints });
     this.drawField();
     const click = () => this.sv.sound.play('button');
     this.board = new BoardView(this, this.battle, this.gd, { onDrop: (f, t) => this.handleDrop(f, t), onDragStart: () => this.dismissTutorial() });
-    this.hud = new HudView(this, this.battle, this.gd, { onSummon: () => this.summon(), onPause: () => this.setPaused(true) }, click);
+    const st = this.battle.state.stage;
+    const title = this.daily ? `오늘의 도전 · ${st.name}` : `${st.id}. ${st.name}`;
+    this.hud = new HudView(this, this.battle, this.gd, { onSummon: () => this.summon(), onPause: () => this.setPaused(true) }, click, title);
+    this.sv.sound.music.play('battle');
     this.fx = new FxLayer(this, this.gd, this.hud.energyPos);
-    this.feedback = new BattleFeedback(this, this.battle, this.gd, this.sv, this.fx, this.hud, this.board);
+    this.feedback = new BattleFeedback(this, this.battle, this.gd, this.sv, this.fx, this.hud, this.board, (uid) => this.enemyViews.get(uid));
     this.board.sync();
     this.persistDiscoveries();
 
@@ -79,13 +91,11 @@ export class BattleScene extends Phaser.Scene {
     const top = cfg.layout.fieldTop;
     const h = cfg.layout.boardTop - top;
     this.add.rectangle(cfg.screen.width / 2, top + h / 2, cfg.screen.width, h, hexToNum(stage.background)).setDepth(0);
+    this.add.image(cfg.screen.width / 2, top + h / 2, backgroundKey(stage.theme)).setDepth(0);
     const g = this.add.graphics().setDepth(0);
     const left = boardLeft(cfg);
-    for (let c = 0; c <= cfg.board.cols; c++) {
-      const x = left + c * cfg.board.cellSize;
-      g.lineStyle(2, 0xffffff, 0.08).lineBetween(x, top, x, cfg.layout.boardTop);
-    }
-    g.lineStyle(2, 0xffffff, 0.12).lineBetween(left, cfg.layout.boardTop - cfg.board.meleeReachPx, left + cfg.board.cols * cfg.board.cellSize, cfg.layout.boardTop - cfg.board.meleeReachPx);
+    // 근접 사거리 표시선
+    g.lineStyle(3, 0xffffff, 0.18).lineBetween(left, cfg.layout.boardTop - cfg.board.meleeReachPx, left + cfg.board.cols * cfg.board.cellSize, cfg.layout.boardTop - cfg.board.meleeReachPx);
   }
 
   private setupDebug(): void {
@@ -131,7 +141,7 @@ export class BattleScene extends Phaser.Scene {
       alive.add(e.uid);
       const v = this.enemyViews.get(e.uid);
       if (v) v.sync();
-      else this.enemyViews.set(e.uid, new EnemyView(this, e, this.gd));
+      else this.enemyViews.set(e.uid, new EnemyView(this, e, this.gd, this.art.get(e.def.id)));
     }
     for (const [uid, v] of this.enemyViews) {
       if (alive.has(uid)) continue;
@@ -251,9 +261,10 @@ export class BattleScene extends Phaser.Scene {
     const blocker = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.7).setInteractive();
     const title = this.add.text(width / 2, 460, '일시정지', textStyle(56, COLORS.text, { fontStyle: 'bold' })).setOrigin(0.5);
     const click = () => this.sv.sound.play('button');
-    const resume = new Button(this, width / 2, 600, 420, 110, '▶ 계속하기', () => this.setPaused(false), { color: 0x2e7d32, onPressSound: click });
-    const quit = new Button(this, width / 2, 740, 420, 110, '메뉴로 나가기', () => this.quit(), { color: 0x8e2430, onPressSound: click });
-    this.pauseLayer = this.add.container(0, 0, [blocker, title, resume, quit]).setDepth(500);
+    const resume = new Button(this, width / 2, 590, 420, 100, '계속하기', () => this.setPaused(false), { color: 0x2e7d32, icon: 'play', onPressSound: click });
+    const settings = new Button(this, width / 2, 720, 420, 100, '설정', () => openSettings(this, this.sv), { color: 0x34495e, icon: 'gear', onPressSound: click });
+    const quit = new Button(this, width / 2, 850, 420, 100, '메뉴로 나가기', () => this.quit(), { color: 0x8e2430, icon: 'home', onPressSound: click });
+    this.pauseLayer = this.add.container(0, 0, [blocker, title, resume, settings, quit]).setDepth(500);
   }
 
   private quit(): void {
@@ -267,15 +278,52 @@ export class BattleScene extends Phaser.Scene {
     if (this.ended) return;
     this.ended = true;
     this.board.cancelDrags();
+    if (result === 'lose' && this.battle.canRevive() && this.sv.ads.available) {
+      this.offerRevive();
+      return;
+    }
+    this.finalize(result);
+  }
+
+  /** 보상형 광고 부활 제안 (광고 서비스가 없으면 호출되지 않음) */
+  private offerRevive(): void {
+    const { width, height } = this.scale;
+    const click = () => this.sv.sound.play('button');
+    const layer = this.add.container(0, 0).setDepth(600);
+    const decline = () => {
+      layer.destroy();
+      this.finalize('lose');
+    };
+    const watch = async () => {
+      layer.destroy();
+      const ok = await this.sv.ads.showRewarded('revive');
+      if (!this.scene.isActive()) return; // 광고 보는 동안 화면이 바뀜
+      if (ok && this.battle.revive()) {
+        this.ended = false;
+        this.fx.cutin('부활!', '기지가 다시 일어섰다', 0x69f0ae);
+      } else this.finalize('lose');
+    };
+    layer.add([
+      this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.7).setInteractive(),
+      this.add.text(width / 2, 470, '기지가 무너졌다!', titleStyle(48, '#FF6B6B')).setOrigin(0.5),
+      new Button(this, width / 2, 610, 460, 104, '광고 보고 부활', () => void watch(), { color: 0x2e7d32, icon: 'heart', onPressSound: click }),
+      new Button(this, width / 2, 740, 460, 90, '결과 보기', decline, { color: 0x4a4f5a, onPressSound: click }),
+    ]);
+  }
+
+  private finalize(result: 'win' | 'lose'): void {
     const s = this.battle.state;
     const timeSec = Math.round(s.time);
-    this.sv.save.recordRun(s.stage.id, result, s.time, this.gd.stages.length);
+    const stars = starRating(result, s.baseHp, s.baseHpMax);
+    if (this.daily) this.sv.save.recordDaily(this.daily, s.stage.id, result, s.time, stars);
+    else this.sv.save.recordRun(s.stage.id, result, s.time, this.gd.stages.length, stars);
     this.persistDiscoveries();
-    this.sv.analytics.track('run_end', { stageId: s.stage.id, result, timeSec, kills: s.kills, mergesTotal: s.mergesTotal, newDiscoveries: s.newDiscoveries });
+    this.sv.analytics.track('run_end', { stageId: s.stage.id, result, timeSec, kills: s.kills, mergesTotal: s.mergesTotal, newDiscoveries: s.newDiscoveries, stars, daily: this.daily !== null });
+    this.sv.sound.music.stop();
     this.sv.sound.play(result === 'win' ? 'win' : 'lose');
     this.sv.haptics.vibrate(result === 'win' ? [50, 50, 50, 50, 150] : 300);
     this.fx.cutin(result === 'win' ? '승리!' : '패배…', result === 'win' ? '기지를 지켜냈다' : '기지가 무너졌다', result === 'win' ? 0xffd700 : 0xe53935);
-    const data: ResultSceneData = { stageId: s.stage.id, result, timeSec, kills: s.kills, mergesTotal: s.mergesTotal, newDiscoveries: [...s.newDiscoveries] };
+    const data: ResultSceneData = { stageId: s.stage.id, result, timeSec, kills: s.kills, mergesTotal: s.mergesTotal, newDiscoveries: [...s.newDiscoveries], stars, daily: this.daily };
     this.time.delayedCall(END_DELAY_MS, () => this.scene.start('ResultScene', data));
   }
 

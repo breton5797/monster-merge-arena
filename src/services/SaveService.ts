@@ -7,6 +7,16 @@ const SAVE_KEY = 'mma_save';
 export interface SaveSettings {
   readonly sound: boolean;
   readonly vibration: boolean;
+  readonly music: boolean;
+}
+
+/** 오늘의 도전 기록 (seed = YYYYMMDD) */
+export interface DailyRecord {
+  readonly seed: number;
+  readonly stageId: number;
+  readonly plays: number;
+  readonly bestStars: number;
+  readonly bestTime: number;
 }
 
 export interface SaveData {
@@ -19,6 +29,9 @@ export interface SaveData {
   /** §11 확장: 첫 판 튜토리얼 표시 여부, 세션 수(분석 isFirstSession용) */
   readonly tutorialDone: boolean;
   readonly sessions: number;
+  /** 스테이지별 최고 ★ (0~3) */
+  readonly stars: Readonly<Record<number, number>>;
+  readonly daily: DailyRecord | null;
 }
 
 export interface KeyValueStore {
@@ -28,7 +41,7 @@ export interface KeyValueStore {
 }
 
 function defaults(): SaveData {
-  return { version: SAVE_VERSION, discovered: [], hints: {}, unlockedStages: 1, bestTime: {}, settings: { sound: true, vibration: true }, tutorialDone: false, sessions: 0 };
+  return { version: SAVE_VERSION, discovered: [], hints: {}, unlockedStages: 1, bestTime: {}, settings: { sound: true, vibration: true, music: true }, tutorialDone: false, sessions: 0, stars: {}, daily: null };
 }
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
@@ -40,7 +53,16 @@ function sanitize(raw: unknown): SaveData {
   const discovered = Array.isArray(raw.discovered) ? raw.discovered.filter((x): x is string => typeof x === 'string') : d.discovered;
   const hints = isRecord(raw.hints) ? Object.fromEntries(Object.entries(raw.hints).filter((e): e is [string, string] => typeof e[1] === 'string')) : d.hints;
   const bestTime = isRecord(raw.bestTime) ? Object.fromEntries(Object.entries(raw.bestTime).filter(([, v]) => typeof v === 'number').map(([k, v]) => [Number(k), v as number])) : d.bestTime;
-  const settings = isRecord(raw.settings) ? { sound: raw.settings.sound !== false, vibration: raw.settings.vibration !== false } : d.settings;
+  const settings = isRecord(raw.settings) ? { sound: raw.settings.sound !== false, vibration: raw.settings.vibration !== false, music: raw.settings.music !== false } : d.settings;
+  const stars = isRecord(raw.stars)
+    ? Object.fromEntries(Object.entries(raw.stars).filter(([, v]) => typeof v === 'number' && Number.isInteger(v) && v >= 0 && v <= 3).map(([k, v]) => [Number(k), v as number]))
+    : d.stars;
+  const dl = raw.daily;
+  const int = (v: unknown, lo: number, hi: number) => Math.min(hi, Math.max(lo, Math.floor(v as number)));
+  const daily =
+    isRecord(dl) && [dl.seed, dl.stageId, dl.plays, dl.bestStars, dl.bestTime].every((v) => typeof v === 'number' && Number.isFinite(v))
+      ? { seed: dl.seed as number, stageId: int(dl.stageId, 1, 99), plays: int(dl.plays, 0, 1e6), bestStars: int(dl.bestStars, 0, 3), bestTime: int(dl.bestTime, 0, 1e6) }
+      : null;
   return {
     version: SAVE_VERSION,
     discovered: [...new Set(discovered)],
@@ -50,6 +72,8 @@ function sanitize(raw: unknown): SaveData {
     settings,
     tutorialDone: raw.tutorialDone === true,
     sessions: typeof raw.sessions === 'number' ? raw.sessions : 0,
+    stars,
+    daily,
   };
 }
 
@@ -98,10 +122,18 @@ export class SaveService {
   }
 
   /** 판 종료 기록: 최고 생존 시간, 승리 시 다음 스테이지 해금 */
-  recordRun(stageId: number, result: 'win' | 'lose', timeSec: number, maxStage = Number.MAX_SAFE_INTEGER): void {
+  recordRun(stageId: number, result: 'win' | 'lose', timeSec: number, maxStage = Number.MAX_SAFE_INTEGER, stars = 0): void {
     const best = Math.max(this.current.bestTime[stageId] ?? 0, Math.floor(timeSec));
     const unlocked = result === 'win' ? Math.min(maxStage, Math.max(this.current.unlockedStages, stageId + 1)) : this.current.unlockedStages;
-    this.commit({ ...this.current, bestTime: { ...this.current.bestTime, [stageId]: best }, unlockedStages: unlocked });
+    const bestStars = Math.max(this.current.stars[stageId] ?? 0, stars);
+    this.commit({ ...this.current, bestTime: { ...this.current.bestTime, [stageId]: best }, unlockedStages: unlocked, stars: { ...this.current.stars, [stageId]: bestStars } });
+  }
+
+  /** 오늘의 도전 기록. 날짜(seed)가 바뀌면 새로 시작 */
+  recordDaily(seed: number, stageId: number, _result: 'win' | 'lose', timeSec: number, stars: number): void {
+    const prev = this.current.daily?.seed === seed ? this.current.daily : { seed, stageId, plays: 0, bestStars: 0, bestTime: 0 };
+    const daily = { seed, stageId: prev.stageId, plays: prev.plays + 1, bestStars: Math.max(prev.bestStars, stars), bestTime: Math.max(prev.bestTime, Math.floor(timeSec)) };
+    this.commit({ ...this.current, daily });
   }
 
   updateSettings(patch: Partial<SaveSettings>): void {

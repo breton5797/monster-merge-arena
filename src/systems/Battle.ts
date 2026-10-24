@@ -38,6 +38,7 @@ export class Battle implements CombatCtx {
   readonly state: BattleState;
   readonly cfg: GameConfig;
   private uid = 1;
+  private revived = false;
   private events: BattleEvent[] = [];
 
   constructor(readonly data: GameData, opts: BattleOptions, readonly rng: Rng = opts.rng) {
@@ -68,6 +69,7 @@ export class Battle implements CombatCtx {
       newDiscoveries: [],
       bossSpawned: false,
       bossDefeated: false,
+      bossEscaped: false,
       result: null,
       schedule: opts.noWaves ? [] : buildSchedule(stage),
       scheduleIdx: 0,
@@ -158,12 +160,14 @@ export class Battle implements CombatCtx {
   }
 
   /** 방어력(armor - 독 방깎) 적용 후 실제 피해를 준다. 반환값 = 실제 피해 */
-  dealDamage(enemy: EnemyUnit, amount: number, _src: HitSource, effect: DamageEffect | 'silent' = 'neutral'): number {
+  dealDamage(enemy: EnemyUnit, amount: number, src: HitSource, effect: DamageEffect | 'silent' = 'neutral'): number {
     if (enemy.dead) return 0;
+    // 유령(ethereal): 근접 몬스터의 공격은 일부만 들어간다
+    if (src.monster?.def.range === 'melee' && enemy.def.meleeTakenPct !== undefined) amount *= enemy.def.meleeTakenPct;
     const armor = Math.max(this.cfg.combat.minArmor, (enemy.def.armor ?? 0) - (enemy.poison.t > 0 ? enemy.poison.pct : 0));
     const dealt = effect === 'silent' ? amount * (1 - armor) : Math.max(this.cfg.combat.minDamage, amount * (1 - armor));
     enemy.hp -= dealt;
-    if (effect !== 'silent') this.emit({ type: 'damage', x: enemy.x, y: enemy.y, amount: dealt, effect });
+    if (effect !== 'silent') this.emit({ type: 'damage', uid: enemy.uid, x: enemy.x, y: enemy.y, amount: dealt, effect });
     if (enemy.hp <= 0) this.kill(enemy);
     return dealt;
   }
@@ -209,7 +213,7 @@ export class Battle implements CombatCtx {
     e.dead = true;
     s.kills++;
     s.energy += e.def.energy;
-    this.emit({ type: 'kill', x: e.x, y: e.y, energy: e.def.energy, boss: isBoss(e) });
+    this.emit({ type: 'kill', x: e.x, y: e.y, energy: e.def.energy, boss: isBoss(e), name: e.def.name });
     if (isBoss(e)) s.bossDefeated = true;
     if (e.def.splitInto && e.def.splitCount) {
       for (let i = 0; i < e.def.splitCount; i++) {
@@ -279,6 +283,23 @@ export class Battle implements CombatCtx {
     const unit = this.placeMonster(result.resultId, result.star, to);
     this.state.mergesTotal++;
     return { kind: 'merge', result, aId: a.defId, bId: b.defId, isNewDiscovery, isFirstChimera, unit };
+  }
+
+  // ---------------------------------------------------------------- 부활 (보상형 광고)
+
+  canRevive(): boolean {
+    return this.state.result === 'lose' && !this.revived && !this.state.bossEscaped;
+  }
+
+  /** 패배 직후 1회: 기지 HP 일부 회복, 보스를 제외한 적 제거, 전투 재개 */
+  revive(): boolean {
+    if (!this.canRevive()) return false;
+    const s = this.state;
+    this.revived = true;
+    s.result = null;
+    s.baseHp = s.baseHpMax * this.cfg.revive.baseHpPct;
+    s.enemies = s.enemies.filter((e) => isBoss(e) && !e.dead);
+    return true;
   }
 
   // ---------------------------------------------------------------- 3택

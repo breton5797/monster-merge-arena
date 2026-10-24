@@ -13,8 +13,8 @@ const clone = <T>(v: T): T => JSON.parse(JSON.stringify(v));
 describe('JSON 로드 검증', () => {
   it('현재 데이터는 통과', () => {
     const d = buildGameData(raw);
-    expect(d.monsters).toHaveLength(26);
-    expect(d.stages).toHaveLength(3);
+    expect(d.monsters).toHaveLength(45);
+    expect(d.stages).toHaveLength(6);
   });
 
   it('필수 숫자 필드 누락 → 파일·항목·필드를 알려준다', () => {

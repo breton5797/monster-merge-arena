@@ -37,5 +37,6 @@ export function createServices(debug: boolean): Services {
   const haptics = new Haptics();
   sound.enabled = save.data.settings.sound;
   haptics.enabled = save.data.settings.vibration;
+  sound.music.enabled = save.data.settings.music;
   return { save, analytics: new Analytics(storage), sound, haptics, ads: new NoopAdService(), store: new NoopStoreService(), debug, runIndex: 0 };
 }

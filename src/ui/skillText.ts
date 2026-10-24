@@ -23,6 +23,16 @@ const TEXT: Record<SkillId, (s: SkillDef) => string> = {
   row_shield: (s) => `${s.intervalSec}초마다 같은 줄 아군 보호막 ${s.amount}`,
   crit: (s) => `${pct(s.chance)} 확률 치명타 ×${s.mult}`,
   poison_cloud: (s) => `독 구름: 초당 ${s.dps} + 방어 ${pct(s.armorShred)} 감소`,
+  meteor: (s) => `${s.intervalSec}초마다 가장 가까운 적에게 ${s.damage} 범위 피해`,
+  pierce: (s) => `레인의 적 ${s.count}마리를 관통`,
+  regen: (s) => `초당 체력 ${pct(s.hpPctPerSec)} 회복`,
+  knockback: (s) => `${pct(s.chance)} 확률로 적을 뒤로 밀어냄`,
+  lifesteal: (s) => `준 피해의 ${pct(s.pct)}만큼 회복`,
+  energy_gain: (s) => `${s.intervalSec}초마다 에너지 +${s.amount}`,
+  buff_adjacent: (s) => `옆 칸 아군 공격력 +${pct(s.atkPct)}`,
+  execute: (s) => `체력 ${pct(s.thresholdPct)} 미만 적에게 ×${s.mult} 피해`,
+  rage: (s) => `연속 공격마다 공속 +${pct(s.perHitPct)} (최대 ${s.maxStacks}중첩)`,
+  anti_air: (s) => `비행 적에게 ×${s.mult} 피해`,
 };
 
 export function skillText(m: MonsterDef): string {

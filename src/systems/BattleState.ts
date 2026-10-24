@@ -22,12 +22,14 @@ export type DamageEffect = 'adv' | 'dis' | 'neutral' | 'crit';
 
 /** 모델 → 화면으로 전달되는 일회성 이벤트 (연출용) */
 export type BattleEvent =
-  | { readonly type: 'attack'; readonly fromX: number; readonly fromY: number; readonly toX: number; readonly toY: number; readonly ranged: boolean; readonly element: ElementId }
-  | { readonly type: 'damage'; readonly x: number; readonly y: number; readonly amount: number; readonly effect: DamageEffect }
+  | { readonly type: 'attack'; readonly sourceUid?: number; readonly fromX: number; readonly fromY: number; readonly toX: number; readonly toY: number; readonly ranged: boolean; readonly element: ElementId }
+  | { readonly type: 'damage'; readonly uid: number; readonly x: number; readonly y: number; readonly amount: number; readonly effect: DamageEffect }
   | { readonly type: 'monsterDamage'; readonly uid: number; readonly amount: number }
-  | { readonly type: 'kill'; readonly x: number; readonly y: number; readonly energy: number; readonly boss: boolean }
+  | { readonly type: 'kill'; readonly x: number; readonly y: number; readonly energy: number; readonly boss: boolean; readonly name: string }
   | { readonly type: 'baseHit'; readonly amount: number; readonly x: number }
-  | { readonly type: 'skill'; readonly skill: SkillId; readonly x: number; readonly y: number; readonly toX?: number; readonly toY?: number; readonly radius?: number }
+  | { readonly type: 'skill'; readonly skill: SkillId; readonly x: number; readonly y: number; readonly toX?: number; readonly toY?: number; readonly radius?: number; readonly element?: ElementId }
+  | { readonly type: 'explode'; readonly x: number; readonly y: number; readonly uid: number }
+  | { readonly type: 'bossHop'; readonly lane: number }
   | { readonly type: 'ko'; readonly uid: number }
   | { readonly type: 'recover'; readonly uid: number }
   | { readonly type: 'revive'; readonly uid: number }
@@ -62,6 +64,8 @@ export interface BattleState {
   readonly newDiscoveries: string[];
   bossSpawned: boolean;
   bossDefeated: boolean;
+  /** 보스가 기지에 닿음 (부활 불가) */
+  bossEscaped: boolean;
   result: 'win' | 'lose' | null;
   readonly schedule: readonly SpawnEntry[];
   scheduleIdx: number;

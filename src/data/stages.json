@@ -2,7 +2,7 @@
   "_note": "waves: atSec부터 durationSec 동안 everySec 간격으로 enemyId를 count마리씩 lanes 중 무작위 레인에 생성. hpScale은 해당 웨이브 적 HP 배율",
   "stages": [
     {
-      "id": 1, "name": "새싹 숲길", "durationSec": 180, "baseHp": 100, "bossRequired": false,
+      "id": 1, "theme": "forest", "name": "새싹 숲길", "durationSec": 180, "baseHp": 100, "bossRequired": false,
       "background": "#1E3A2A",
       "waves": [
         { "atSec": 0,   "durationSec": 60, "enemyId": "goo",      "everySec": 3.6, "count": 1, "hpScale": 0.8 },
@@ -13,7 +13,7 @@
       ]
     },
     {
-      "id": 2, "name": "불꽃 협곡", "durationSec": 180, "baseHp": 100, "bossRequired": false,
+      "id": 2, "theme": "canyon", "name": "불꽃 협곡", "durationSec": 180, "baseHp": 100, "bossRequired": false,
       "background": "#3A1E1E",
       "waves": [
         { "atSec": 0,   "durationSec": 180,"enemyId": "imp",      "everySec": 4.0, "count": 1, "hpScale": 0.66 },
@@ -24,7 +24,7 @@
       ]
     },
     {
-      "id": 3, "name": "폭풍 해안", "durationSec": 180, "baseHp": 100, "bossRequired": true,
+      "id": 3, "theme": "coast", "name": "폭풍 해안", "durationSec": 180, "baseHp": 100, "bossRequired": true,
       "background": "#1E2A3A",
       "waves": [
         { "atSec": 0,   "durationSec": 150,"enemyId": "goo",      "everySec": 3.6, "count": 1, "hpScale": 0.72 },
@@ -34,6 +34,35 @@
         { "atSec": 80,  "durationSec": 70, "enemyId": "shaman",   "everySec": 22.2,"count": 1, "hpScale": 0.54 },
         { "atSec": 150, "durationSec": 1,  "enemyId": "king_chimera","everySec": 1, "count": 1, "hpScale": 1.0, "lane": "center" },
         { "atSec": 150, "durationSec": 30, "enemyId": "imp",      "everySec": 6.7, "count": 1, "hpScale": 0.68 }
+      ]
+    },
+    {"id": 4, "theme": "cave", "name": "수정 동굴", "durationSec": 180, "baseHp": 100, "bossRequired": false, "background": "#1E1B3A",
+      "waves": [
+        {"atSec": 0, "durationSec": 180, "enemyId": "goo", "everySec": 3.2, "count": 1, "hpScale": 1.03},
+        {"atSec": 20, "durationSec": 160, "enemyId": "ghost", "everySec": 7, "count": 1, "hpScale": 0.92},
+        {"atSec": 60, "durationSec": 120, "enemyId": "bomber", "everySec": 12, "count": 1, "hpScale": 0.92},
+        {"atSec": 100, "durationSec": 80, "enemyId": "splitter", "everySec": 10, "count": 1, "hpScale": 0.8},
+        {"atSec": 140, "durationSec": 40, "enemyId": "dasher", "everySec": 6, "count": 1, "hpScale": 0.92}
+      ]
+    },
+    {"id": 5, "theme": "snow", "name": "얼음 설원", "durationSec": 180, "baseHp": 100, "bossRequired": false, "background": "#6F8FAF",
+      "waves": [
+        {"atSec": 0, "durationSec": 180, "enemyId": "dasher", "everySec": 5, "count": 1, "hpScale": 1.04},
+        {"atSec": 40, "durationSec": 140, "enemyId": "beetle", "everySec": 14, "count": 1, "hpScale": 1.04},
+        {"atSec": 70, "durationSec": 90, "enemyId": "shaman", "everySec": 22, "count": 1, "hpScale": 0.91},
+        {"atSec": 90, "durationSec": 90, "enemyId": "ghost", "everySec": 8, "count": 1, "hpScale": 1.04},
+        {"atSec": 120, "durationSec": 60, "enemyId": "bomber", "everySec": 9, "count": 1, "hpScale": 1.04}
+      ]
+    },
+    {"id": 6, "theme": "storm", "name": "폭풍 첨탑", "durationSec": 180, "baseHp": 100, "bossRequired": true, "background": "#1F2A3A",
+      "waves": [
+        {"atSec": 0, "durationSec": 150, "enemyId": "goo", "everySec": 3.6, "count": 1, "hpScale": 0.68},
+        {"atSec": 20, "durationSec": 130, "enemyId": "crow", "everySec": 11, "count": 1, "hpScale": 0.59},
+        {"atSec": 40, "durationSec": 110, "enemyId": "ghost", "everySec": 9, "count": 1, "hpScale": 0.59},
+        {"atSec": 60, "durationSec": 90, "enemyId": "bomber", "everySec": 12, "count": 1, "hpScale": 0.59},
+        {"atSec": 80, "durationSec": 70, "enemyId": "beetle", "everySec": 14, "count": 1, "hpScale": 0.59},
+        {"atSec": 150, "durationSec": 1, "enemyId": "storm_dragon", "everySec": 1, "count": 1, "hpScale": 1.0, "lane": "center"},
+        {"atSec": 150, "durationSec": 30, "enemyId": "dasher", "everySec": 7, "count": 1, "hpScale": 0.59}
       ]
     }
   ]

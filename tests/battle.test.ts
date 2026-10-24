@@ -103,7 +103,7 @@ describe('Battle 기본', () => {
   it('키메라 첫 생성은 isFirstChimera, 도감에 기록', () => {
     const b = mk();
     b.placeMonster('ember_pup', 1, 0);
-    b.placeMonster('cinder_bat', 1, 1);
+    b.placeMonster('pebble_turtle', 1, 1);
     expect(b.dragDrop(0, 1)).toMatchObject({ kind: 'merge', result: { kind: 'chimera' }, isFirstChimera: true });
     expect(b.state.discovered.has('chimera')).toBe(true);
   });

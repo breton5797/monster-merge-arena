@@ -24,6 +24,16 @@ export const SKILL_PARAMS = {
   row_shield: ['amount', 'intervalSec'],
   crit: ['chance', 'mult'],
   poison_cloud: ['dps', 'armorShred', 'durationSec'],
+  meteor: ['intervalSec', 'damage', 'radius'],
+  pierce: ['count'],
+  regen: ['hpPctPerSec'],
+  knockback: ['px', 'chance'],
+  lifesteal: ['pct'],
+  energy_gain: ['amount', 'intervalSec'],
+  buff_adjacent: ['atkPct'],
+  execute: ['thresholdPct', 'mult'],
+  rage: ['perHitPct', 'maxStacks'],
+  anti_air: ['mult'],
 } as const satisfies Record<string, readonly string[]>;
 
 export type SkillId = keyof typeof SKILL_PARAMS;
@@ -65,7 +75,7 @@ export interface ElementsFile {
   readonly multiplier: { readonly advantage: number; readonly disadvantage: number; readonly neutral: number };
 }
 
-export type EnemyFlag = 'armored' | 'flying' | 'split' | 'healer' | 'boss';
+export type EnemyFlag = 'armored' | 'flying' | 'split' | 'healer' | 'boss' | 'ethereal' | 'bomber';
 
 export interface BossDef {
   readonly elementCycle: readonly ElementId[];
@@ -73,6 +83,8 @@ export interface BossDef {
   readonly summonAtHpPct: number;
   readonly summonId: string;
   readonly summonCount: number;
+  /** 이 주기마다 다른 레인으로 이동 (선택) */
+  readonly laneHopSec?: number;
 }
 
 export interface EnemyDef {
@@ -93,8 +105,15 @@ export interface EnemyDef {
   readonly healAmount?: number;
   readonly healRadius?: number;
   readonly healIntervalSec?: number;
+  /** ethereal: 근접 공격에서 받는 피해 비율 */
+  readonly meleeTakenPct?: number;
+  /** bomber: 막히면 자폭해 막은 몬스터에게 주는 피해 */
+  readonly explodeDamage?: number;
   readonly boss?: BossDef;
 }
+
+export const STAGE_THEMES = ['forest', 'canyon', 'coast', 'cave', 'snow', 'storm'] as const;
+export type StageTheme = (typeof STAGE_THEMES)[number];
 
 export interface WaveDef {
   readonly atSec: number;
@@ -113,6 +132,8 @@ export interface StageDef {
   readonly baseHp: number;
   readonly bossRequired: boolean;
   readonly background: string;
+  /** 배경 일러스트 테마 (src/art/backgrounds.ts) */
+  readonly theme: StageTheme;
   readonly waves: readonly WaveDef[];
 }
 
@@ -139,6 +160,9 @@ export interface GameConfig {
     readonly energyAmount: number;
   };
   readonly discoveryCutinSec: number;
+  readonly revive: { readonly baseHpPct: number };
+  /** 승리 시 기지 HP 비율 기준 ★ */
+  readonly stars: { readonly threeStarPct: number; readonly twoStarPct: number };
   readonly debug: { readonly queryParam: string; readonly fastForwardKey: string };
   readonly layout: {
     readonly topBarBottom: number;
@@ -164,6 +188,10 @@ export interface GameConfig {
     readonly pullSpeedFactor: number;
     /** 둔화 합산 상한 (0~1) */
     readonly maxSlowPct: number;
+    /** 보스가 넉백될 때 거리 배율 */
+    readonly bossKnockbackPct: number;
+    /** 보스가 레인을 옮길 때 뒤로 밀려나는 거리 (이동 중 즉사 방지) */
+    readonly bossHopPushbackPx: number;
   };
   readonly fx: {
     readonly slowmoScale: number;
@@ -304,7 +332,7 @@ export function validateElements(raw: unknown): ElementsFile {
   return { elements, multiplier };
 }
 
-const ENEMY_FLAGS: readonly EnemyFlag[] = ['armored', 'flying', 'split', 'healer', 'boss'];
+const ENEMY_FLAGS: readonly EnemyFlag[] = ['armored', 'flying', 'split', 'healer', 'boss', 'ethereal', 'bomber'];
 
 export function validateEnemies(raw: unknown): EnemyDef[] {
   const c = new Ctx('enemies.json', '');
@@ -335,11 +363,15 @@ export function validateEnemies(raw: unknown): EnemyDef[] {
       healAmount: optNum(o, 'healAmount', ec),
       healRadius: optNum(o, 'healRadius', ec),
       healIntervalSec: optNum(o, 'healIntervalSec', ec),
+      meleeTakenPct: optNum(o, 'meleeTakenPct', ec),
+      explodeDamage: optNum(o, 'explodeDamage', ec),
       boss: o.boss === undefined ? undefined : validateBoss(o.boss, ec.at('boss')),
     };
     if (flags.includes('armored') && def.armor === undefined) ec.at('armor').fail('armored 적은 armor가 필요합니다');
     if (flags.includes('split') && (def.splitInto === undefined || def.splitCount === undefined)) ec.fail('split 적은 splitInto/splitCount가 필요합니다');
     if (flags.includes('healer') && (def.healAmount === undefined || def.healRadius === undefined || def.healIntervalSec === undefined)) ec.fail('healer 적은 healAmount/healRadius/healIntervalSec가 필요합니다');
+    if (flags.includes('ethereal') && def.meleeTakenPct === undefined) ec.at('meleeTakenPct').fail('ethereal 적은 meleeTakenPct가 필요합니다');
+    if (flags.includes('bomber') && def.explodeDamage === undefined) ec.at('explodeDamage').fail('bomber 적은 explodeDamage가 필요합니다');
     if (flags.includes('boss') && def.boss === undefined) ec.at('boss').fail('boss 적은 boss 설정이 필요합니다');
     return def;
   });
@@ -358,6 +390,7 @@ function validateBoss(v: unknown, c: Ctx): BossDef {
     summonAtHpPct: num(o, 'summonAtHpPct', c),
     summonId: str(o, 'summonId', c),
     summonCount: num(o, 'summonCount', c),
+    laneHopSec: optNum(o, 'laneHopSec', c),
   };
 }
 
@@ -391,6 +424,7 @@ export function validateStages(raw: unknown): StageDef[] {
       baseHp: num(o, 'baseHp', sc),
       bossRequired: bool(o, 'bossRequired', sc),
       background: str(o, 'background', sc),
+      theme: oneOf(o, 'theme', STAGE_THEMES, sc),
       waves,
     };
   });
@@ -426,6 +460,8 @@ export function validateConfig(raw: unknown): GameConfig {
       energyAmount: num(pick, 'energyAmount', pc),
     },
     discoveryCutinSec: num(o, 'discoveryCutinSec', c),
+    revive: numRecord(o.revive, ['baseHpPct'] as const, c.at('revive')),
+    stars: numRecord(o.stars, ['threeStarPct', 'twoStarPct'] as const, c.at('stars')),
     debug: { queryParam: str(debug, 'queryParam', c.at('debug')), fastForwardKey: str(debug, 'fastForwardKey', c.at('debug')) },
     layout: numRecord(o.layout, ['topBarBottom', 'fieldTop', 'boardTop', 'boardBottom', 'spawnY', 'enemyRadius', 'monsterRadius', 'minionOffsetX', 'minionBaseY', 'minionStepY'] as const, c.at('layout')),
     combat: {
@@ -437,6 +473,8 @@ export function validateConfig(raw: unknown): GameConfig {
       enemyStackOffsetPx: num(combat, 'enemyStackOffsetPx', cc),
       pullSpeedFactor: num(combat, 'pullSpeedFactor', cc),
       maxSlowPct: num(combat, 'maxSlowPct', cc),
+      bossKnockbackPct: num(combat, 'bossKnockbackPct', cc),
+      bossHopPushbackPx: num(combat, 'bossHopPushbackPx', cc),
     },
     fx: numRecord(o.fx, ['slowmoScale', 'debugSpeed', 'shakeMs', 'shakeIntensity', 'toastSec', 'tutorialHandSec'] as const, c.at('fx')),
   };

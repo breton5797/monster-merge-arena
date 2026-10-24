@@ -34,15 +34,17 @@ export class BoardView {
     const g = this.scene.add.graphics().setDepth(1);
     const left = boardLeft(cfg);
     const w = this.cellW * cfg.board.cols;
-    g.fillStyle(0x000000, 0.35).fillRect(0, cfg.layout.boardTop, cfg.screen.width, cfg.layout.boardBottom - cfg.layout.boardTop);
+    g.fillGradientStyle(0x2a2140, 0x2a2140, 0x1a1428, 0x1a1428, 1).fillRect(0, cfg.layout.boardTop, cfg.screen.width, cfg.layout.boardBottom - cfg.layout.boardTop);
     for (let r = 0; r < cfg.board.rows; r++) {
       for (let c = 0; c < cfg.board.cols; c++) {
         const x = left + c * this.cellW;
         const y = cfg.layout.boardTop + r * this.rowH;
-        g.fillStyle(r === 0 ? 0x2d3a4a : 0x222a35, 1).fillRoundedRect(x + 4, y + 4, this.cellW - 8, this.rowH - 8, 14);
+        g.fillStyle(0x120d1e, 1).fillRoundedRect(x + 4, y + 7, this.cellW - 8, this.rowH - 8, 16);
+        g.fillStyle(r === 0 ? 0x3d3460 : 0x2e2848, 1).fillRoundedRect(x + 4, y + 3, this.cellW - 8, this.rowH - 10, 16);
+        g.fillStyle(0xffffff, 0.05).fillRoundedRect(x + 10, y + 8, this.cellW - 20, 18, 8);
       }
     }
-    g.lineStyle(4, 0xffb703, 0.7).lineBetween(left, cfg.layout.boardTop, left + w, cfg.layout.boardTop);
+    g.lineStyle(5, 0xffb703, 0.85).lineBetween(left, cfg.layout.boardTop, left + w, cfg.layout.boardTop);
     this.scene.add.text(left / 2, cfg.layout.boardTop + this.rowH / 2, '앞\n줄', textStyle(18, '#9AA3B2', { align: 'center' })).setOrigin(0.5).setDepth(1);
     this.scene.add.text(left / 2, cfg.layout.boardTop + this.rowH * 1.5, '뒷\n줄', textStyle(18, '#6B7280', { align: 'center' })).setOrigin(0.5).setDepth(1);
   }

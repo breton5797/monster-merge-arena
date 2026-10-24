@@ -1,4 +1,5 @@
 import type Phaser from 'phaser';
+import type { ArtSpec } from './art';
 import type { Services } from './services';
 import type { GameData } from './types';
 
@@ -8,6 +9,12 @@ export function getData(scene: Phaser.Scene): GameData {
   const d: unknown = scene.registry.get('data');
   if (!d) throw new Error('GameData가 로드되지 않았습니다 (BootScene 확인)');
   return d as GameData;
+}
+
+export function getArt(scene: Phaser.Scene): ReadonlyMap<string, ArtSpec> {
+  const a: unknown = scene.registry.get('art');
+  if (!a) throw new Error('아트가 준비되지 않았습니다 (BootScene 확인)');
+  return a as ReadonlyMap<string, ArtSpec>;
 }
 
 export function getServices(scene: Phaser.Scene): Services {

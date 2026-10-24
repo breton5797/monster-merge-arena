@@ -6,8 +6,12 @@ import type { CombatCtx } from '../BattleState';
 export interface SkillHandler {
   /** 기본 공격 대상 목록 변경 (candidates는 기지에 가까운 순) */
   selectTargets?(m: MonsterUnit, candidates: EnemyUnit[], ctx: CombatCtx): EnemyUnit[];
-  /** 공격 데미지 배율 (치명타 등) */
-  modifyHit?(m: MonsterUnit, ctx: CombatCtx): { mult: number; crit: boolean };
+  /** 공격 데미지 배율 (치명타·처형·대공 등). crit=true면 큰 숫자로 표시 */
+  modifyHit?(m: MonsterUnit, target: EnemyUnit, ctx: CombatCtx): { mult: number; crit: boolean };
+  /** 공격 속도 배율 (분노 등) */
+  attackSpeedMult?(m: MonsterUnit): number;
+  /** 공격할 대상이 없을 때 */
+  onIdle?(m: MonsterUnit): void;
   /** 공격 적중 후 (rawAmount = 방어력 적용 전 데미지) */
   onHit?(m: MonsterUnit, target: EnemyUnit, rawAmount: number, ctx: CombatCtx): void;
   /** 매 틱 (기절 아닐 때) — 주기 스킬 */

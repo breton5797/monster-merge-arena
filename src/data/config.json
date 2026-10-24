@@ -65,7 +65,9 @@
     "auraTickSec": 0.5,
     "enemyStackOffsetPx": 14,
     "pullSpeedFactor": 4,
-    "maxSlowPct": 0.9
+    "maxSlowPct": 0.9,
+    "bossKnockbackPct": 0.25,
+    "bossHopPushbackPx": 120
   },
   "fx": {
     "slowmoScale": 0.15,
@@ -74,5 +76,12 @@
     "shakeIntensity": 0.012,
     "toastSec": 1.8,
     "tutorialHandSec": 2.4
+  },
+  "revive": {
+    "baseHpPct": 0.5
+  },
+  "stars": {
+    "threeStarPct": 0.8,
+    "twoStarPct": 0.5
   }
 }

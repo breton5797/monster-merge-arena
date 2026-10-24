@@ -1,11 +1,11 @@
 // npm run sim [-- --runs 10 --stage 2]
-// 무작위 합성 봇으로 각 스테이지를 시뮬레이션해 승률을 출력한다. 목표: 1스테이지 80%+, 2는 50%, 3은 25% 수준.
+// 무작위 합성 봇으로 각 스테이지를 시뮬레이션해 승률을 출력한다. 목표: 1~6 스테이지 80/50/25/55/40/20% 수준.
 import { loadGameData } from '../src/gameData';
 import { Battle } from '../src/systems/Battle';
 import { RandomBot } from '../src/systems/Bot';
 import { createRng } from '../src/systems/rng';
 
-const TARGET: Record<number, number> = { 1: 0.8, 2: 0.5, 3: 0.25 };
+const TARGET: Record<number, number> = { 1: 0.8, 2: 0.5, 3: 0.25, 4: 0.55, 5: 0.4, 6: 0.2 };
 const DT = 0.05;
 const OVERTIME_CAP_SEC = 300;
 

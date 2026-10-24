@@ -22,7 +22,7 @@ describe('PickSystem.generatePicks', () => {
 
   it('가능하면 1장은 보드 몬스터와 합치면 미발견 레시피가 되는 몬스터 카드', () => {
     const partners = undiscoveredPartners(['ember_pup'], new Set(), data);
-    expect(partners.sort()).toEqual(['drip_slime', 'sprout_bunny', 'thorn_hog', 'zap_mouse'].sort());
+    expect(partners.sort()).toEqual(['cinder_bat', 'drip_slime', 'sprout_bunny', 'thorn_hog', 'zap_mouse'].sort());
     for (let s = 1; s <= 100; s++) {
       const opts = generatePicks(ctx({}, s));
       expect(opts.some((o) => o.kind === 'monster' && o.recipeHint && partners.includes(o.monsterId))).toBe(true);
@@ -31,7 +31,7 @@ describe('PickSystem.generatePicks', () => {
 
   it('이미 발견한 레시피의 파트너는 보정 대상이 아니다', () => {
     const discovered = new Set(['steam_spirit', 'phoenix_chick', 'blaze_vine']);
-    expect(undiscoveredPartners(['ember_pup'], discovered, data)).toEqual(['zap_mouse']);
+    expect(undiscoveredPartners(['ember_pup'], discovered, data).sort()).toEqual(['cinder_bat', 'zap_mouse']);
   });
 
   it('tier2/키메라만 있으면 보정 카드 없음', () => {
@@ -49,12 +49,12 @@ describe('PickSystem.generatePicks', () => {
 
   it('레시피 힌트 카드는 미발견 레시피의 재료 하나를 공개', () => {
     let seen = 0;
-    const discovered = new Set(data.fusions.recipes.slice(0, 14).map((r) => r.result));
+    const discovered = new Set(data.fusions.recipes.slice(0, -1).map((r) => r.result));
     for (let s = 1; s <= 300; s++) {
       for (const o of generatePicks(ctx({ discovered, boardIds: [] }, s))) {
         if (o.kind !== 'recipe_hint') continue;
         seen++;
-        const r = data.fusions.recipes[14];
+        const r = data.fusions.recipes[data.fusions.recipes.length - 1];
         expect(o.resultId).toBe(r.result);
         expect([r.a, r.b]).toContain(o.revealId);
       }
@@ -83,8 +83,8 @@ describe('PickSystem.generatePicks', () => {
   });
 
   it('이미 힌트를 받은 레시피는 다시 힌트 카드로 나오지 않는다 (기존 힌트 덮어쓰기 방지)', () => {
-    const r = data.fusions.recipes[14];
-    const discovered = new Set(data.fusions.recipes.slice(0, 14).map((x) => x.result));
+    const r = data.fusions.recipes[data.fusions.recipes.length - 1];
+    const discovered = new Set(data.fusions.recipes.slice(0, -1).map((x) => x.result));
     for (let s = 1; s <= 200; s++) {
       const opts = generatePicks(ctx({ discovered, boardIds: [], hints: { [r.result]: r.a } }, s));
       expect(opts.some((o) => o.kind === 'recipe_hint')).toBe(false);

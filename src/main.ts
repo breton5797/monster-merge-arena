@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import '@fontsource/jua';
 import { BootScene } from './scenes/BootScene';
 import { MenuScene } from './scenes/MenuScene';
 import { BattleScene } from './scenes/BattleScene';
@@ -18,7 +19,7 @@ const game = new Phaser.Game({
   parent: 'game',
   width: config.screen.width,
   height: config.screen.height,
-  backgroundColor: '#111111',
+  backgroundColor: '#0F1729',
   scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
   input: { activePointers: 2 },
   render: { antialias: true },

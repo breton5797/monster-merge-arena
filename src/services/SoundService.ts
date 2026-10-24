@@ -1,4 +1,5 @@
-// Web Audio로 즉석 합성하는 효과음 (에셋 없음). Arcade Core 분리 후보.
+// Web Audio로 즉석 합성하는 효과음 + 배경음악 (에셋 없음). Arcade Core 분리 후보.
+import { Music } from './Music';
 
 export type SfxId = 'merge' | 'discover' | 'chimera' | 'invalid' | 'hit' | 'kill' | 'baseHit' | 'button' | 'summon' | 'pick' | 'win' | 'lose' | 'boss';
 
@@ -32,17 +33,17 @@ const MASTER_VOLUME = 0.25;
 
 export class SoundService {
   private ctx: AudioContext | null = null;
+  readonly music = new Music(() => this.ctx);
   private lastPlayed = new Map<SfxId, number>();
   enabled = true;
 
   /** 브라우저 자동재생 정책 때문에 첫 터치 이후 호출 */
   unlock(): void {
-    if (this.ctx) {
-      void this.ctx.resume();
-      return;
+    if (!this.ctx) {
+      const Ctor = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (Ctor) this.ctx = new Ctor();
     }
-    const Ctor = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    if (Ctor) this.ctx = new Ctor();
+    void this.ctx?.resume().then(() => this.music.resume());
   }
 
   play(id: SfxId): void {

@@ -18,10 +18,10 @@ describe('MergeSystem.resolve', () => {
     expect(data.monsterById.has(data.fusions.chimeraId)).toBe(true);
   });
 
-  it('레시피는 15개이고 재료 조합이 중복되지 않는다', () => {
-    expect(data.fusions.recipes).toHaveLength(15);
+  it('레시피는 30개이고 재료 조합이 중복되지 않는다', () => {
+    expect(data.fusions.recipes).toHaveLength(30);
     const keys = new Set(data.fusions.recipes.map((r) => [r.a, r.b].sort().join('+')));
-    expect(keys.size).toBe(15);
+    expect(keys.size).toBe(30);
   });
 
   it.each(data.fusions.recipes.map((r) => [r.a, r.b, r.result]))('%s + %s → %s (양방향)', (a, b, result) => {
@@ -36,7 +36,7 @@ describe('MergeSystem.resolve', () => {
     expect(resolve(u('ember_pup', 3), u('drip_slime', 3), data)).toMatchObject({ kind: 'recipe', star: 3 });
   });
 
-  it('레시피 없는 서로 다른 기본 조합은 정확히 30가지이고 모두 키메라 ★1', () => {
+  it('레시피 없는 서로 다른 기본 조합은 정확히 61가지이고 모두 키메라 ★1', () => {
     let chimeras = 0;
     let recipes = 0;
     for (let i = 0; i < tier1.length; i++) {
@@ -48,13 +48,13 @@ describe('MergeSystem.resolve', () => {
         } else if (r.kind === 'recipe') recipes++;
       }
     }
-    expect(tier1).toHaveLength(10);
-    expect(chimeras).toBe(30);
-    expect(recipes).toBe(15);
+    expect(tier1).toHaveLength(14);
+    expect(chimeras).toBe(61);
+    expect(recipes).toBe(30);
   });
 
   it('키메라는 재료 ★와 상관없이 ★1', () => {
-    expect(resolve(u('ember_pup', 3), u('cinder_bat', 3), data)).toEqual({ kind: 'chimera', resultId: 'chimera', star: 1 });
+    expect(resolve(u('ember_pup', 3), u('pebble_turtle', 3), data)).toEqual({ kind: 'chimera', resultId: 'chimera', star: 1 });
   });
 
   it('같은 종 같은 ★ → ★+1, maxStar에서는 invalid', () => {
@@ -87,7 +87,7 @@ describe('MergeSystem.resolve', () => {
 
   it('findRecipe는 순서 무관', () => {
     expect(findRecipe('drip_slime', 'ember_pup', data)?.result).toBe('steam_spirit');
-    expect(findRecipe('ember_pup', 'cinder_bat', data)).toBeUndefined();
+    expect(findRecipe('ember_pup', 'pebble_turtle', data)).toBeUndefined();
   });
 });
 

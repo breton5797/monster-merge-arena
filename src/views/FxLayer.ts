@@ -1,6 +1,8 @@
 import Phaser from 'phaser';
 import type { BattleEvent, DamageEffect } from '../systems/BattleState';
-import type { ElementId, GameData } from '../types';
+import type { ElementId, GameData, SkillId } from '../types';
+
+type SkillEvent = Extract<BattleEvent, { type: 'skill' }>;
 import { COLORS, hexToNum, textStyle } from '../ui/theme';
 
 const MAX_POPUPS = 40;
@@ -86,52 +88,61 @@ export class FxLayer {
     this.scene.tweens.add({ targets: g, alpha: 0, duration: 220, onComplete: () => g.destroy() });
   }
 
-  skill(ev: Extract<BattleEvent, { type: 'skill' }>): void {
-    const { x, y } = ev;
-    switch (ev.skill) {
-      case 'chain_lanes':
-        this.line(x, y, ev.toX ?? x, ev.toY ?? y, 0xffe066, 6);
-        break;
-      case 'splash':
-        this.ring(x, y, ev.radius ?? 80, 0x3da5ff);
-        break;
-      case 'burn_aura':
-        this.ring(x, y, ev.radius ?? 150, 0xff6b3d, 450);
-        break;
-      case 'poison_cloud': {
-        const c = this.scene.add.circle(x, y, ev.radius ?? 40, 0x8bc34a, 0.35).setDepth(19);
-        this.scene.tweens.add({ targets: c, scale: 1.6, alpha: 0, duration: 600, onComplete: () => c.destroy() });
-        break;
-      }
-      case 'lane_slow': {
-        const r = this.scene.add.rectangle(x, (y + this.data.config.layout.boardTop) / 2, this.data.config.board.cellSize - 10, this.data.config.layout.boardTop - y, 0xbfe9ff, 0.12).setDepth(2);
-        this.scene.tweens.add({ targets: r, alpha: 0, duration: 480, onComplete: () => r.destroy() });
-        break;
-      }
-      case 'stun_chance':
-        this.floatText(x, y - 30, '💫', '#FFFFFF', 30);
-        break;
-      case 'heal_all':
-        this.ring(x, y, 200, 0x5bc35b, 500);
-        break;
-      case 'row_shield':
-        this.ring(x, y, 120, 0x7fdbff, 400);
-        break;
-      case 'ground_flyers':
-        this.floatText(x, y - 20, '🧲 추락!', '#FFD23F', 24);
-        break;
-      case 'taunt_adjacent_lanes':
-        this.floatText(x, y - 20, '❗', '#FFFFFF', 30);
-        break;
-      case 'reflect':
-        this.line(x, y, ev.toX ?? x, ev.toY ?? y, 0x5bc35b, 3);
-        break;
-      case 'summon_minion':
-        this.floatText(ev.toX ?? x, ev.toY ?? y, '🐝', '#FFFFFF', 28);
-        break;
-      default:
-        this.ring(x, y, 60, 0xffffff);
-    }
+  skill(ev: SkillEvent): void {
+    const handler = this.skillFx[ev.skill];
+    if (handler) handler(ev);
+    else this.ring(ev.x, ev.y, 60, 0xffffff);
+  }
+
+  /** 스킬별 연출 (없는 스킬은 기본 링) */
+  private readonly skillFx: Partial<Record<SkillId, (ev: SkillEvent) => void>> = {
+    chain_lanes: (e) => this.line(e.x, e.y, e.toX ?? e.x, e.toY ?? e.y, 0xffe066, 6),
+    splash: (e) => this.ring(e.x, e.y, e.radius ?? 80, 0x3da5ff),
+    burn_aura: (e) => this.ring(e.x, e.y, e.radius ?? 150, 0xff6b3d, 450),
+    poison_cloud: (e) => {
+      const c = this.scene.add.circle(e.x, e.y, e.radius ?? 40, 0x8bc34a, 0.35).setDepth(19);
+      this.scene.tweens.add({ targets: c, scale: 1.6, alpha: 0, duration: 600, onComplete: () => c.destroy() });
+    },
+    lane_slow: (e) => {
+      const top = this.data.config.layout.boardTop;
+      const r = this.scene.add.rectangle(e.x, (e.y + top) / 2, this.data.config.board.cellSize - 10, top - e.y, 0xbfe9ff, 0.12).setDepth(2);
+      this.scene.tweens.add({ targets: r, alpha: 0, duration: 480, onComplete: () => r.destroy() });
+    },
+    stun_chance: (e) => this.floatText(e.x, e.y - 30, '💫', '#FFFFFF', 30),
+    heal_all: (e) => this.ring(e.x, e.y, 200, 0x5bc35b, 500),
+    row_shield: (e) => this.ring(e.x, e.y, 120, 0x7fdbff, 400),
+    ground_flyers: (e) => this.floatText(e.x, e.y - 20, '추락!', '#FFD23F', 24),
+    taunt_adjacent_lanes: (e) => this.floatText(e.x, e.y - 20, '❗', '#FFFFFF', 30),
+    reflect: (e) => this.line(e.x, e.y, e.toX ?? e.x, e.toY ?? e.y, 0x5bc35b, 3),
+    summon_minion: (e) => this.floatText(e.toX ?? e.x, e.toY ?? e.y, '🐝', '#FFFFFF', 28),
+    meteor: (e) => this.meteor(e.x, e.y, e.radius ?? 80, e.element ?? 'fire'),
+    pierce: (e) => this.line(e.x, e.y, e.toX ?? e.x, e.toY ?? e.y, e.element ? this.color(e.element) : 0xffe066, 10),
+    knockback: (e) => this.floatText(e.x, e.y - 30, '밀쳐냄!', '#BDE0FE', 22),
+    energy_gain: (e) => this.floatText(e.x, e.y - 50, '+⚡', '#7FDBFF', 30),
+  };
+
+  /** 하늘에서 떨어지는 메테오/번개 */
+  meteor(x: number, y: number, radius: number, element: ElementId): void {
+    const s = this.scene;
+    const color = this.color(element);
+    const rock = s.add.circle(x, this.data.config.layout.fieldTop - 20, 16, color).setStrokeStyle(4, 0xffffff, 0.9).setDepth(25);
+    s.tweens.add({
+      targets: rock,
+      y,
+      duration: 220,
+      ease: 'Quad.In',
+      onComplete: () => {
+        rock.destroy();
+        this.ring(x, y, radius, color, 380);
+        this.burst(x, y, color, 10, radius);
+      },
+    });
+  }
+
+  explosion(x: number, y: number): void {
+    this.ring(x, y, 110, 0xff7a1a, 420);
+    this.burst(x, y, 0xffb020, 18, 120);
+    this.floatText(x, y - 30, '펑!', '#FFB020', 40);
   }
 
   /** 화면 중앙 컷인 배너 */

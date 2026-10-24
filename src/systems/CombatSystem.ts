@@ -3,7 +3,7 @@ import { isKnockedOut, type MonsterUnit } from '../entities/Monster';
 import type { DamageEffect, CombatCtx } from './BattleState';
 import { frontBlocker, unitsOnBoard } from './BoardSystem';
 import { getMultiplier } from './elements';
-import { cellCenter, cellCol, enemyStopY, isFrontRow, laneX } from './layout';
+import { adjacentCells, cellCenter, cellCol, enemyStopY, isFrontRow, laneX } from './layout';
 import { hasSkill, skillOf } from './skills';
 import { targetsInLane } from './targeting';
 
@@ -11,9 +11,19 @@ import { targetsInLane } from './targeting';
 
 export function computeHit(ctx: CombatCtx, m: MonsterUnit, e: EnemyUnit): { amount: number; effect: DamageEffect } {
   const mult = getMultiplier(m.def.element, e.element, ctx.data.elements);
-  const buff = 1 + ctx.state.elementBuff[m.def.element];
+  const buff = 1 + ctx.state.elementBuff[m.def.element] + adjacentAtkBonus(ctx, m);
   const effect: DamageEffect = mult > 1 ? 'adv' : mult < 1 ? 'dis' : 'neutral';
   return { amount: m.atk * buff * mult, effect };
+}
+
+/** 옆 칸(상하좌우)의 기절하지 않은 buff_adjacent 몬스터가 주는 공격력 보너스 합 */
+function adjacentAtkBonus(ctx: CombatCtx, m: MonsterUnit): number {
+  let bonus = 0;
+  for (const c of adjacentCells(m.cell, ctx.cfg)) {
+    const n = ctx.state.board[c];
+    if (n && !isKnockedOut(n) && hasSkill(n, 'buff_adjacent')) bonus += Number(n.def.skill?.atkPct ?? 0);
+  }
+  return bonus;
 }
 
 /** 오라 효과는 매 틱 다시 계산한다 */
@@ -39,19 +49,20 @@ export function updateMonsters(ctx: CombatCtx, dt: number): void {
     const candidates = ranged || isFrontRow(m.cell, ctx.cfg) ? targetsInLane(ctx.state, cellCol(m.cell, ctx.cfg), ranged, ctx.cfg) : [];
     if (candidates.length === 0) {
       m.cooldown = 0;
+      skill.onIdle?.(m);
       continue;
     }
     const targets = skill.selectTargets ? skill.selectTargets(m, candidates, ctx) : [candidates[0]];
     const from = cellCenter(m.cell, ctx.cfg);
     for (const t of targets) {
       const hit = computeHit(ctx, m, t);
-      const mod = skill.modifyHit?.(m, ctx) ?? { mult: 1, crit: false };
+      const mod = skill.modifyHit?.(m, t, ctx) ?? { mult: 1, crit: false };
       const amount = hit.amount * mod.mult;
-      ctx.emit({ type: 'attack', fromX: from.x, fromY: from.y, toX: t.x, toY: t.y, ranged, element: m.def.element });
+      ctx.emit({ type: 'attack', sourceUid: m.uid, fromX: from.x, fromY: from.y, toX: t.x, toY: t.y, ranged, element: m.def.element });
       ctx.dealDamage(t, amount, { element: m.def.element, monster: m }, mod.crit ? 'crit' : hit.effect);
       skill.onHit?.(m, t, amount, ctx);
     }
-    m.cooldown += 1 / m.def.atkSpeed;
+    m.cooldown += 1 / (m.def.atkSpeed * (skill.attackSpeedMult?.(m) ?? 1));
   }
 }
 
@@ -97,6 +108,8 @@ export function updateEnemies(ctx: CombatCtx, dt: number): void {
     const slow = Math.min(ctx.cfg.combat.maxSlowPct, Math.max(e.slow.t > 0 ? e.slow.pct : 0, e.auraSlow));
     const speed = e.def.speed * (1 - slow);
     moveTowardLane(ctx, e, speed * ctx.cfg.combat.pullSpeedFactor * dt);
+    // 보스는 새 레인에 도착할 때까지 전진하지 않는다
+    if (isBoss(e) && e.x !== laneX(e.lane, ctx.cfg)) continue;
     if (e.blocked) tickBlocked(ctx, e, dt);
     else tickWalking(ctx, e, speed * dt);
   }
@@ -138,6 +151,20 @@ function tickBoss(ctx: CombatCtx, e: EnemyUnit, dt: number): void {
     e.element = boss.elementCycle[e.bossCycleIdx];
     ctx.emit({ type: 'bossElement', element: e.element });
   }
+  if (boss.laneHopSec) {
+    e.hopTimer += dt;
+    if (e.hopTimer >= boss.laneHopSec) {
+      e.hopTimer -= boss.laneHopSec;
+      const others = Array.from({ length: ctx.cfg.board.cols }, (_, i) => i).filter((l) => l !== e.lane);
+      if (others.length > 0) {
+        e.lane = others[Math.floor(ctx.rng.next() * others.length)];
+        e.blocked = false;
+        // 뒤로 물러나며 이동 → 이동 중 바로 기지에 닿지 않고 플레이어가 대응할 시간이 생긴다
+        e.y = Math.max(ctx.cfg.layout.spawnY, e.y - ctx.cfg.combat.bossHopPushbackPx);
+        ctx.emit({ type: 'bossHop', lane: e.lane });
+      }
+    }
+  }
   if (!e.bossSummoned && e.hp <= e.maxHp * boss.summonAtHpPct) {
     e.bossSummoned = true;
     for (let i = 0; i < boss.summonCount; i++) {
@@ -172,7 +199,15 @@ function tickWalking(ctx: CombatCtx, e: EnemyUnit, step: number): void {
   if (e.y >= ctx.cfg.layout.boardTop - ctx.cfg.board.meleeReachPx) tryTaunt(ctx, e);
   if (e.y < stopY) return;
   e.y = stopY;
-  if (!e.flying && frontBlocker(ctx.state.board, e.lane, ctx.cfg)) {
+  const blocker = e.flying ? null : frontBlocker(ctx.state.board, e.lane, ctx.cfg);
+  if (blocker && e.def.explodeDamage !== undefined) {
+    // 폭탄벌레: 막히는 순간 자폭 (처치로 치지 않음 → 에너지 없음)
+    e.dead = true;
+    ctx.emit({ type: 'explode', x: e.x, y: e.y, uid: blocker.uid });
+    ctx.damageMonster(blocker, e.def.explodeDamage, null);
+    return;
+  }
+  if (blocker) {
     e.blocked = true;
     e.cooldown = Math.min(e.cooldown, 0);
     return;
@@ -197,6 +232,7 @@ function tickBlocked(ctx: CombatCtx, e: EnemyUnit, dt: number): void {
 
 function reachBase(ctx: CombatCtx, e: EnemyUnit): void {
   e.dead = true;
+  if (isBoss(e)) ctx.state.bossEscaped = true;
   ctx.state.baseHp = Math.max(0, ctx.state.baseHp - e.def.baseDamage);
   ctx.emit({ type: 'baseHit', amount: e.def.baseDamage, x: e.x });
 }

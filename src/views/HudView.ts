@@ -1,16 +1,17 @@
 import Phaser from 'phaser';
+import { iconKey } from '../art/icons';
 import type { Battle } from '../systems/Battle';
 import type { GameData } from '../types';
 import { Button } from '../ui/Button';
 import { HpBar } from '../ui/HpBar';
-import { COLORS, formatTime, hexToNum, textStyle } from '../ui/theme';
+import { COLORS, formatTime, hexToNum, textStyle, titleStyle } from '../ui/theme';
 
 export interface HudHandlers {
   onSummon(): void;
   onPause(): void;
 }
 
-/** 상단 바(시간·기지 HP·일시정지·보스 HP) + 하단 바(에너지·소환·도감 알림) */
+/** 상단 바(기지 HP·시간·일시정지·보스 HP) + 하단 바(에너지·소환·도감 알림) */
 export class HudView {
   private readonly timer: Phaser.GameObjects.Text;
   private readonly baseBar: HpBar;
@@ -19,35 +20,43 @@ export class HudView {
   private readonly bossLabel: Phaser.GameObjects.Text;
   private readonly energyText: Phaser.GameObjects.Text;
   private readonly summonBtn: Button;
-  private readonly codexDot: Phaser.GameObjects.Text;
+  private readonly codexDot: Phaser.GameObjects.Container;
   private readonly pickInfo: Phaser.GameObjects.Text;
   readonly speedText: Phaser.GameObjects.Text;
   readonly energyPos: { x: number; y: number };
 
-  constructor(private readonly scene: Phaser.Scene, private readonly battle: Battle, private readonly data: GameData, handlers: HudHandlers, click: () => void) {
+  constructor(private readonly scene: Phaser.Scene, private readonly battle: Battle, private readonly data: GameData, handlers: HudHandlers, click: () => void, title: string) {
     const cfg = data.config;
     const W = cfg.screen.width;
+    const top = cfg.layout.topBarBottom;
     const bottomY = (cfg.layout.boardBottom + cfg.screen.height) / 2;
+    const D = 100;
 
-    scene.add.rectangle(W / 2, cfg.layout.topBarBottom / 2, W, cfg.layout.topBarBottom, 0x000000, 0.55).setDepth(100);
-    scene.add.text(30, 22, `🏰 기지`, textStyle(22, COLORS.textDim)).setDepth(101);
-    this.baseBar = new HpBar(scene, 150, 78, 240, 22).setDepth(101);
-    this.baseText = scene.add.text(150, 78, '', textStyle(18, '#FFFFFF', { stroke: '#000', strokeThickness: 3 })).setOrigin(0.5).setDepth(102);
-    this.timer = scene.add.text(W / 2 + 30, 60, '3:00', textStyle(56, '#FFFFFF', { fontStyle: 'bold' })).setOrigin(0.5).setDepth(101);
-    this.pickInfo = scene.add.text(W / 2 + 30, 100, '', textStyle(18, COLORS.textDim)).setOrigin(0.5).setDepth(101);
-    new Button(scene, W - 64, 60, 96, 88, '⏸', handlers.onPause, { fontSize: 40, onPressSound: click }).setDepth(101);
-    scene.add.text(W - 150, 26, battle.state.stage.name, textStyle(18, COLORS.textDim)).setOrigin(1, 0).setDepth(101);
+    const bar = scene.add.graphics().setDepth(D);
+    bar.fillGradientStyle(0x1b1530, 0x1b1530, 0x110d20, 0x110d20, 1).fillRect(0, 0, W, top);
+    bar.fillStyle(0x2a1f2d, 1).fillRect(0, top - 4, W, 4);
+    scene.add.image(44, 44, iconKey('base')).setDisplaySize(42, 42).setDepth(D + 1);
+    scene.add.text(72, 44, title, textStyle(20, COLORS.textDim)).setOrigin(0, 0.5).setDepth(D + 1);
+    this.baseBar = new HpBar(scene, 150, 88, 236, 24).setDepth(D + 1);
+    this.baseText = scene.add.text(150, 88, '', textStyle(18, '#FFFFFF', { stroke: '#000', strokeThickness: 4 })).setOrigin(0.5).setDepth(D + 2);
+    this.timer = scene.add.text(W / 2 + 40, 52, '3:00', titleStyle(58)).setOrigin(0.5).setDepth(D + 1);
+    this.pickInfo = scene.add.text(W / 2 + 40, 98, '', textStyle(18, '#C9B8FF')).setOrigin(0.5).setDepth(D + 1);
+    new Button(scene, W - 58, 54, 84, 76, '', handlers.onPause, { icon: 'pause', fontSize: 32, color: 0x34495e, onPressSound: click }).setDepth(D + 1);
 
-    this.bossLabel = scene.add.text(W / 2, cfg.layout.topBarBottom + 18, '👹 킹 키메라', textStyle(22, '#FF8A80', { stroke: '#000', strokeThickness: 4 })).setOrigin(0.5).setDepth(101).setVisible(false);
-    this.bossBar = new HpBar(scene, W / 2, cfg.layout.topBarBottom + 44, W - 120, 16, 0xff5252, 0xff5252).setDepth(101).setVisible(false);
+    this.bossLabel = scene.add.text(W / 2, top + 22, '', titleStyle(24)).setOrigin(0.5).setDepth(D + 1).setVisible(false);
+    this.bossBar = new HpBar(scene, W / 2, top + 50, W - 120, 16, 0xff5252, 0xff5252).setDepth(D + 1).setVisible(false);
 
-    scene.add.rectangle(W / 2, bottomY, W, cfg.screen.height - cfg.layout.boardBottom, 0x0b0d12, 1).setDepth(100);
-    this.energyPos = { x: 120, y: bottomY };
-    scene.add.text(120, bottomY - 44, '에너지', textStyle(20, COLORS.textDim)).setOrigin(0.5).setDepth(101);
-    this.energyText = scene.add.text(120, bottomY + 6, '', textStyle(48, COLORS.energy, { fontStyle: 'bold' })).setOrigin(0.5).setDepth(101);
-    this.summonBtn = new Button(scene, W / 2 + 60, bottomY, 300, 120, '', handlers.onSummon, { color: 0x2e7d32, fontSize: 32, onPressSound: click }).setDepth(101);
-    this.codexDot = scene.add.text(W - 60, bottomY, '📖\nNEW', textStyle(22, '#FF5252', { align: 'center', fontStyle: 'bold' })).setOrigin(0.5).setDepth(101).setVisible(false);
-    this.speedText = scene.add.text(W / 2, cfg.layout.topBarBottom + 80, '', textStyle(22, '#FF6B6B')).setOrigin(0.5).setDepth(101);
+    const bb = scene.add.graphics().setDepth(D);
+    bb.fillGradientStyle(0x151026, 0x151026, 0x0b0814, 0x0b0814, 1).fillRect(0, cfg.layout.boardBottom, W, cfg.screen.height - cfg.layout.boardBottom);
+    bb.fillStyle(0x2a1f2d, 1).fillRect(0, cfg.layout.boardBottom, W, 4);
+    this.energyPos = { x: 110, y: bottomY };
+    scene.add.image(66, bottomY, iconKey('energy')).setDisplaySize(64, 64).setDepth(D + 1);
+    this.energyText = scene.add.text(102, bottomY, '', titleStyle(52, '#7FDBFF')).setOrigin(0, 0.5).setDepth(D + 1);
+    this.summonBtn = new Button(scene, W / 2 + 70, bottomY - 4, 290, 112, '', handlers.onSummon, { color: 0x2e7d32, fontSize: 34, icon: 'energy', onPressSound: click }).setDepth(D + 1);
+    const dotImg = scene.add.image(0, -10, iconKey('book')).setDisplaySize(52, 52);
+    const dotTxt = scene.add.text(0, 30, 'NEW', titleStyle(20, '#FF5C7A')).setOrigin(0.5);
+    this.codexDot = scene.add.container(W - 54, bottomY, [dotImg, dotTxt]).setDepth(D + 1).setVisible(false);
+    this.speedText = scene.add.text(W / 2, top + 84, '', titleStyle(22, '#FF6B6B')).setOrigin(0.5).setDepth(D + 1);
   }
 
   update(): void {
@@ -58,18 +67,17 @@ export class HudView {
     this.baseBar.setValue(s.baseHp / s.baseHpMax);
     this.baseText.setText(`${Math.ceil(s.baseHp)} / ${s.baseHpMax}`);
     const picksLeft = Math.max(0, Math.floor((s.stage.durationSec - 1e-6) / this.data.config.pick.intervalSec) - s.picksShown);
-    this.pickInfo.setText(picksLeft > 0 ? `다음 보상 ${Math.max(0, Math.ceil(s.nextPickAt - s.time))}초` : '');
-    this.energyText.setText(`⚡${Math.floor(s.energy)}`);
-    const cost = this.battle.summonCost();
-    this.summonBtn.setText(`소환  ⚡${cost}`);
+    this.pickInfo.setText(picksLeft > 0 ? `다음 보상까지 ${Math.max(0, Math.ceil(s.nextPickAt - s.time))}초` : '');
+    this.energyText.setText(`${Math.floor(s.energy)}`);
+    this.summonBtn.setText(`소환 ${this.battle.summonCost()}`);
     this.summonBtn.setEnabled(this.battle.canSummon());
     const boss = this.battle.boss;
     this.bossLabel.setVisible(!!boss);
     this.bossBar.setVisible(!!boss);
     if (boss) {
+      const el = this.data.elements.elements[boss.element];
       this.bossBar.setValue(boss.hp / boss.maxHp);
-      this.bossLabel.setText(`👹 킹 키메라 · ${this.data.elements.elements[boss.element].name} 속성`);
-      this.bossLabel.setColor(this.data.elements.elements[boss.element].color);
+      this.bossLabel.setText(`${boss.def.name} · ${el.name} 속성`).setColor(el.color);
     }
   }
 

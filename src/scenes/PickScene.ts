@@ -4,7 +4,9 @@ import type { Battle } from '../systems/Battle';
 import type { PickOption } from '../systems/PickSystem';
 import type { GameData } from '../types';
 import { Button } from '../ui/Button';
-import { COLORS, hexToNum, textStyle } from '../ui/theme';
+import { COLORS, hexToNum, textStyle, titleStyle } from '../ui/theme';
+import { creatureKey } from '../art';
+import { iconKey } from '../art/icons';
 
 export interface PickSceneData {
   readonly battle: Battle;
@@ -13,7 +15,8 @@ export interface PickSceneData {
 }
 
 interface CardInfo {
-  readonly icon: string;
+  /** 텍스처 키 목록 (캐릭터/아이콘). 2개면 겹쳐 그림 */
+  readonly art: readonly string[];
   readonly title: string;
   readonly desc: string;
   readonly color: number;
@@ -49,7 +52,7 @@ export class PickScene extends Phaser.Scene {
     const total = Math.floor((s.stage.durationSec - 1e-6) / gd.config.pick.intervalSec);
 
     this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.72).setInteractive();
-    this.add.text(width / 2, 330, '보상 선택', textStyle(52, COLORS.text, { fontStyle: 'bold' })).setOrigin(0.5);
+    this.add.text(width / 2, 330, '보상 선택', titleStyle(56, '#FFD54F')).setOrigin(0.5);
     this.add.text(width / 2, 390, `${s.picksShown} / ${total}  ·  하나를 골라 전투를 이어가세요`, textStyle(24, COLORS.textDim)).setOrigin(0.5);
 
     const choose = (i: number) => {
@@ -67,16 +70,16 @@ export class PickScene extends Phaser.Scene {
       this.cards.forEach((c) => c.destroy());
       this.cards = d.battle.state.currentPick.map((o, i) => this.makeCard(gd, o, i, () => choose(i)));
     };
-    const reroll = new Button(this, width / 2, 960, 320, 96, '', () => {
+    const reroll = new Button(this, width / 2, 960, 320, 90, '', () => {
       if (this.chosen || !d.battle.reroll()) return;
       this.rerolled = true;
       d.onRerolled();
       sv.sound.play('pick');
       render();
       refreshReroll();
-    }, { color: 0x4527a0, fontSize: 30 });
+    }, { color: 0x4527a0, fontSize: 30, icon: 'dice' });
     const refreshReroll = () => {
-      reroll.setText(`🎲 리롤 (${d.battle.state.rerollsLeft})`);
+      reroll.setText(`리롤 (${d.battle.state.rerollsLeft})`);
       reroll.setEnabled(d.battle.state.rerollsLeft > 0);
     };
     render();
@@ -90,10 +93,15 @@ export class PickScene extends Phaser.Scene {
     g.fillStyle(COLORS.panel, 1).fillRoundedRect(-CARD_W / 2, -CARD_H / 2, CARD_W, CARD_H, 20);
     g.fillStyle(info.color, 0.9).fillRoundedRect(-CARD_W / 2, -CARD_H / 2, CARD_W, 150, { tl: 20, tr: 20, bl: 0, br: 0 });
     g.lineStyle(4, info.ribbon ? 0xffd700 : 0xffffff, info.ribbon ? 1 : 0.25).strokeRoundedRect(-CARD_W / 2, -CARD_H / 2, CARD_W, CARD_H, 20);
+    const arts = info.art.map((key, i, all) => {
+      const size = key.startsWith('cr-') ? 140 : 84;
+      const dx = all.length > 1 ? (i === 0 ? -34 : 34) : 0;
+      return this.add.image(dx, -CARD_H / 2 + 78 + (all.length > 1 && i === 1 ? 10 : 0), key).setDisplaySize(size, size);
+    });
     const items: Phaser.GameObjects.GameObject[] = [
       g,
-      this.add.text(0, -CARD_H / 2 + 75, info.icon, textStyle(68)).setOrigin(0.5),
-      this.add.text(0, -CARD_H / 2 + 190, info.title, textStyle(27, COLORS.text, { fontStyle: 'bold', align: 'center', wordWrap: { width: CARD_W - 20 } })).setOrigin(0.5),
+      ...arts,
+      this.add.text(0, -CARD_H / 2 + 190, info.title, titleStyle(27)).setOrigin(0.5).setWordWrapWidth(CARD_W - 20).setAlign('center'),
       this.add.text(0, -CARD_H / 2 + 280, info.desc, textStyle(20, COLORS.textDim, { align: 'center', wordWrap: { width: CARD_W - 24 } })).setOrigin(0.5),
     ];
     if (info.ribbon) items.push(this.add.text(0, CARD_H / 2 - 4, info.ribbon, textStyle(20, '#000000', { backgroundColor: '#FFD700', padding: { x: 10, y: 6 }, fontStyle: 'bold' })).setOrigin(0.5));
@@ -117,24 +125,24 @@ function describe(gd: GameData, o: PickOption): CardInfo {
   switch (o.kind) {
     case 'monster': {
       const m = mon(o.monsterId);
-      return { icon: m?.emoji ?? '?', title: m?.name ?? o.monsterId, desc: `${el(o.monsterId).name} · ${m?.range === 'melee' ? '근접' : '원거리'}\n몬스터 1마리 지급`, color: hexToNum(el(o.monsterId).color), ribbon: o.recipeHint ? '✨ 새 조합 가능?' : undefined };
+      return { art: [creatureKey(o.monsterId)], title: m?.name ?? o.monsterId, desc: `${el(o.monsterId).name} · ${m?.range === 'melee' ? '근접' : '원거리'}\n몬스터 1마리 지급`, color: hexToNum(el(o.monsterId).color), ribbon: o.recipeHint ? '✨ 새 조합 가능?' : undefined };
     }
     case 'monster_pair': {
       const m = mon(o.monsterId);
-      return { icon: `${m?.emoji ?? '?'}${m?.emoji ?? '?'}`, title: `${m?.name ?? o.monsterId} ×2`, desc: '같은 몬스터 2마리\n바로 ★강화 가능', color: hexToNum(el(o.monsterId).color) };
+      return { art: [creatureKey(o.monsterId), creatureKey(o.monsterId)], title: `${m?.name ?? o.monsterId} ×2`, desc: '같은 몬스터 2마리\n바로 ★강화 가능', color: hexToNum(el(o.monsterId).color) };
     }
     case 'recipe_hint': {
       const r = gd.fusions.recipes.find((x) => x.result === o.resultId);
       const reveal = mon(o.revealId);
-      return { icon: '📜', title: '레시피 힌트', desc: `"${r?.hint ?? ''}"\n\n${reveal?.emoji ?? ''} ${reveal?.name ?? ''} + ???\n(${reveal?.name ?? ''} 지급)`, color: 0x8d6e63 };
+      return { art: [creatureKey(o.revealId), iconKey('question')], title: '레시피 힌트', desc: `"${r?.hint ?? ''}"\n${reveal?.name ?? ''} + ???\n(${reveal?.name ?? ''} 지급)`, color: 0x8d6e63 };
     }
     case 'buff_element': {
       const e = gd.elements.elements[o.element];
-      return { icon: '⚔️', title: `${e.name} 속성 강화`, desc: `${e.name} 몬스터 공격력\n+${Math.round(gd.config.pick.buffElementPct * 100)}% (이번 판)`, color: hexToNum(e.color) };
+      return { art: [iconKey(`el_${o.element}`)], title: `${e.name} 속성 강화`, desc: `${e.name} 몬스터 공격력\n+${Math.round(gd.config.pick.buffElementPct * 100)}% (이번 판)`, color: hexToNum(e.color) };
     }
     case 'heal':
-      return { icon: '💖', title: '치유', desc: `기지 HP +${Math.round(gd.config.pick.healBasePct * 100)}%\n기절한 몬스터 즉시 복귀`, color: 0xc2185b };
+      return { art: [iconKey('heart')], title: '치유', desc: `기지 HP +${Math.round(gd.config.pick.healBasePct * 100)}%\n기절한 몬스터 즉시 복귀`, color: 0xc2185b };
     case 'energy':
-      return { icon: '⚡', title: '에너지', desc: `에너지 +${gd.config.pick.energyAmount}\n소환에 사용`, color: 0x0277bd };
+      return { art: [iconKey('energy')], title: '에너지', desc: `에너지 +${gd.config.pick.energyAmount}\n소환에 사용`, color: 0x0277bd };
   }
 }

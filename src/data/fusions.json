@@ -16,6 +16,21 @@
     { "a": "bubble_fish",  "b": "thorn_hog",     "result": "sea_urchin",    "hint": "바다에 사는 가시" },
     { "a": "gravel_golem", "b": "bubble_fish",   "result": "coral_golem",   "hint": "바다의 바위" },
     { "a": "zap_mouse",    "b": "ember_pup",     "result": "thunder_fox",   "hint": "번개처럼 빠른 여우" },
-    { "a": "cinder_bat",   "b": "sprout_bunny",  "result": "spore_bat",     "hint": "어두운 동굴의 버섯" }
+    { "a": "cinder_bat",   "b": "sprout_bunny",  "result": "spore_bat",     "hint": "어두운 동굴의 버섯" },
+    {"a": "flare_lizard", "b": "gravel_golem", "result": "magma_golem", "hint": "불씨가 바위를 녹이면"},
+    {"a": "flare_lizard", "b": "storm_owl", "result": "thunderbird", "hint": "불꽃과 폭풍이 함께 날면"},
+    {"a": "flare_lizard", "b": "tide_crab", "result": "hotspring_crab", "hint": "뜨거운 물에 사는 집게"},
+    {"a": "tide_crab", "b": "storm_owl", "result": "shock_crab", "hint": "파도 위로 번개가 치면"},
+    {"a": "tide_crab", "b": "moss_snail", "result": "swamp_beast", "hint": "물과 이끼가 고인 곳"},
+    {"a": "moss_snail", "b": "zap_mouse", "result": "glow_snail", "hint": "밤에 빛나는 느림보"},
+    {"a": "moss_snail", "b": "pebble_turtle", "result": "elder_treant", "hint": "오래된 돌에 이끼가 덮이면"},
+    {"a": "storm_owl", "b": "sprout_bunny", "result": "moon_owl", "hint": "달밤의 숲을 지키는 눈"},
+    {"a": "storm_owl", "b": "volt_bee", "result": "storm_swarm", "hint": "폭풍을 타고 몰려오는 날개"},
+    {"a": "drip_slime", "b": "volt_bee", "result": "shock_slime", "hint": "물방울에 벌침이 쏘이면"},
+    {"a": "gravel_golem", "b": "thorn_hog", "result": "bramble_golem", "hint": "가시 돋친 돌덩이"},
+    {"a": "ember_pup", "b": "cinder_bat", "result": "inferno_wolf", "hint": "불과 불이 만나 더 큰 불"},
+    {"a": "zap_mouse", "b": "volt_bee", "result": "thunder_cloud", "hint": "번개와 번개가 모이면 구름이 된다"},
+    {"a": "pebble_turtle", "b": "gravel_golem", "result": "mountain_titan", "hint": "돌이 쌓이고 쌓여 산이 되면"},
+    {"a": "drip_slime", "b": "bubble_fish", "result": "whale_king", "hint": "작은 물이 모여 바다의 왕"}
   ]
 }

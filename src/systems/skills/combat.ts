@@ -11,7 +11,7 @@ export const multiTarget: SkillHandler = {
 };
 
 export const crit: SkillHandler = {
-  modifyHit(m, ctx) {
+  modifyHit(m, _t, ctx) {
     return ctx.rng.next() < skillParam(m, 'chance') ? { mult: skillParam(m, 'mult'), crit: true } : { mult: 1, crit: false };
   },
 };

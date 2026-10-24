@@ -15,6 +15,8 @@ export interface MonsterUnit {
   cooldown: number;
   skillTimer: number;
   revived: boolean;
+  /** 분노(rage) 중첩 수 */
+  stacks: number;
 }
 
 export function starScale(star: number, cfg: GameConfig): number {
@@ -24,7 +26,7 @@ export function starScale(star: number, cfg: GameConfig): number {
 export function createMonster(uid: number, def: MonsterDef, star: number, cell: number, cfg: GameConfig): MonsterUnit {
   const s = starScale(star, cfg);
   const maxHp = def.hp * s;
-  return { uid, defId: def.id, def, star, maxHp, atk: def.atk * s, cell, hp: maxHp, koTimer: 0, shield: 0, cooldown: 0, skillTimer: 0, revived: false };
+  return { uid, defId: def.id, def, star, maxHp, atk: def.atk * s, cell, hp: maxHp, koTimer: 0, shield: 0, cooldown: 0, skillTimer: 0, revived: false, stacks: 0 };
 }
 
 export function isKnockedOut(m: MonsterUnit): boolean {

@@ -30,6 +30,7 @@ export interface EnemyUnit {
   bossTimer: number;
   bossCycleIdx: number;
   bossSummoned: boolean;
+  hopTimer: number;
 }
 
 const emptyStatus = (): Status => ({ pct: 0, dps: 0, t: 0 });
@@ -40,7 +41,7 @@ export function createEnemy(uid: number, def: EnemyDef, element: ElementId, hpSc
     uid, def, maxHp, hpScale, element, hp: maxHp, x, y, lane,
     blocked: false, flying: def.flags.includes('flying'), cooldown: 0, dead: false,
     slow: emptyStatus(), auraSlow: 0, burn: emptyStatus(), poison: emptyStatus(), stun: 0,
-    healTimer: 0, bossTimer: 0, bossCycleIdx: 0, bossSummoned: false,
+    healTimer: 0, bossTimer: 0, bossCycleIdx: 0, bossSummoned: false, hopTimer: 0,
   };
 }
 

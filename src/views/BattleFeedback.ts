@@ -5,6 +5,7 @@ import type { BattleEvent } from '../systems/BattleState';
 import { cellCenter } from '../systems/layout';
 import type { GameData } from '../types';
 import type { BoardView } from './BoardView';
+import type { EnemyView } from './EnemyView';
 import type { FxLayer } from './FxLayer';
 import type { HudView } from './HudView';
 
@@ -18,6 +19,7 @@ export class BattleFeedback {
     private readonly fx: FxLayer,
     private readonly hud: HudView,
     private readonly board: BoardView,
+    private readonly enemyView: (uid: number) => EnemyView | undefined,
   ) {}
 
   private shake(scale = 1): void {
@@ -34,9 +36,11 @@ export class BattleFeedback {
     switch (ev.type) {
       case 'attack':
         this.fx.projectile(ev);
+        if (ev.sourceUid !== undefined) this.board.viewOf(ev.sourceUid)?.lunge();
         break;
       case 'damage':
         this.fx.damage(ev.x, ev.y, ev.amount, ev.effect);
+        this.enemyView(ev.uid)?.hurt();
         this.sv.sound.play('hit');
         break;
       case 'skill':
@@ -60,6 +64,18 @@ export class BattleFeedback {
       case 'bossSummon':
         this.onBoss(ev);
         break;
+      case 'explode':
+        this.fx.explosion(ev.x, ev.y);
+        this.board.viewOf(ev.uid)?.hurt();
+        this.shake(1.5);
+        this.sv.sound.play('baseHit');
+        this.sv.haptics.vibrate(60);
+        break;
+      case 'bossHop': {
+        const boss = this.battle.boss;
+        if (boss) this.fx.floatText(boss.x, boss.y - 110, '레인 이동!', '#FFE066', 30);
+        break;
+      }
       case 'recover':
       case 'pick':
       case 'end':
@@ -78,7 +94,7 @@ export class BattleFeedback {
     this.fx.kill(ev.x, ev.y, ev.energy, () => this.hud.pulseEnergy());
     this.sv.sound.play('kill');
     if (!ev.boss) return;
-    this.fx.cutin('보스 처치!', '킹 키메라를 쓰러뜨렸다', 0xffd700);
+    this.fx.cutin('보스 처치!', `${ev.name}을(를) 쓰러뜨렸다`, 0xffd700);
     this.fx.burst(ev.x, ev.y, 0xffd700, 30, 220);
     this.shake(2);
     this.sv.haptics.vibrate([60, 40, 120]);
@@ -87,6 +103,7 @@ export class BattleFeedback {
   private onMonster(ev: Extract<BattleEvent, { type: 'monsterDamage' | 'ko' | 'revive' | 'heal' }>): void {
     const p = this.monsterPos(ev.uid);
     if (!p) return;
+    if (ev.type === 'monsterDamage' && ev.amount >= 1) this.board.viewOf(ev.uid)?.hurt();
     if (ev.type === 'monsterDamage' && ev.amount >= 1) this.fx.floatText(p.x + 30, p.y - 30, `-${Math.round(ev.amount)}`, '#FF6B6B', 18);
     else if (ev.type === 'heal' && ev.amount >= 1) this.fx.floatText(p.x - 30, p.y - 20, `+${Math.round(ev.amount)}`, '#69F0AE', 18);
     else if (ev.type === 'ko') this.fx.floatText(p.x, p.y - 40, '기절!', '#BDBDBD', 24);
@@ -99,7 +116,10 @@ export class BattleFeedback {
   private onBoss(ev: Extract<BattleEvent, { type: 'bossSpawn' | 'bossElement' | 'bossSummon' }>): void {
     const boss = this.battle.boss;
     if (ev.type === 'bossSpawn') {
-      this.fx.cutin('👹 킹 키메라 등장!', '30초마다 속성이 바뀐다 — 상성으로 대응!', 0xff1744);
+      this.sv.sound.music.play('boss');
+      const b = this.battle.boss;
+      const sub = b?.def.boss?.laneHopSec ? `${b.def.boss.cycleSec}초마다 속성, ${b.def.boss.laneHopSec}초마다 레인을 바꾼다!` : `${b?.def.boss?.cycleSec ?? ''}초마다 속성이 바뀐다 — 상성으로 대응!`;
+      this.fx.cutin(`${b?.def.name ?? '보스'} 등장!`, sub, 0xff1744);
       this.shake(2.5);
       this.sv.sound.play('boss');
       this.sv.haptics.vibrate([100, 50, 100]);
