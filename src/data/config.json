@@ -1,0 +1,78 @@
+{
+  "screen": {
+    "width": 720,
+    "height": 1280
+  },
+  "board": {
+    "cols": 4,
+    "rows": 2,
+    "cellSize": 150,
+    "minTouchPx": 88,
+    "meleeReachPx": 120
+  },
+  "starMultiplier": 1.6,
+  "maxStar": 3,
+  "knockoutSec": 10,
+  "knockoutReturnHpPct": 0.5,
+  "startingMonsters": 4,
+  "energy": {
+    "start": 10,
+    "summonBaseCost": 10,
+    "summonCostStep": 3
+  },
+  "pick": {
+    "intervalSec": 20,
+    "optionCount": 3,
+    "freeRerollsPerRun": 1,
+    "guaranteeUndiscoveredRecipeCard": true,
+    "weights": {
+      "monster": 35,
+      "monster_pair": 15,
+      "recipe_hint": 10,
+      "buff_element": 15,
+      "heal": 10,
+      "energy": 15
+    },
+    "buffElementPct": 0.2,
+    "healBasePct": 0.25,
+    "energyAmount": 15
+  },
+  "discoveryCutinSec": 0.6,
+  "debug": {
+    "queryParam": "debug",
+    "fastForwardKey": "F"
+  },
+  "layout": {
+    "topBarBottom": 120,
+    "fieldTop": 120,
+    "boardTop": 820,
+    "boardBottom": 1080,
+    "spawnY": 140,
+    "enemyRadius": 30,
+    "monsterRadius": 40,
+    "minionOffsetX": 32,
+    "minionBaseY": 48,
+    "minionStepY": 20
+  },
+  "combat": {
+    "projectileSpeedPx": 1600,
+    "minDamage": 1,
+    "minArmor": -0.5,
+    "bossLanes": [
+      1,
+      2
+    ],
+    "auraTickSec": 0.5,
+    "enemyStackOffsetPx": 14,
+    "pullSpeedFactor": 4,
+    "maxSlowPct": 0.9
+  },
+  "fx": {
+    "slowmoScale": 0.15,
+    "debugSpeed": 4,
+    "shakeMs": 220,
+    "shakeIntensity": 0.012,
+    "toastSec": 1.8,
+    "tutorialHandSec": 2.4
+  }
+}

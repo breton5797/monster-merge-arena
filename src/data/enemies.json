@@ -1,0 +1,13 @@
+{
+  "_note": "speed = px/초. element가 'random'이면 스폰 시 5속성 중 무작위",
+  "enemies": [
+    { "id": "goo",        "name": "젤리몹",     "emoji": "🟢", "element": "random", "hp": 60,   "atk": 6,  "atkSpeed": 1.0, "speed": 55, "baseDamage": 5,  "energy": 4, "flags": [] },
+    { "id": "imp",        "name": "날쌘도깨비", "emoji": "👺", "element": "fire",   "hp": 40,   "atk": 5,  "atkSpeed": 1.5, "speed": 95, "baseDamage": 4,  "energy": 4, "flags": [] },
+    { "id": "beetle",     "name": "철갑벌레",   "emoji": "🪲", "element": "rock",   "hp": 220,  "atk": 10, "atkSpeed": 0.8, "speed": 35, "baseDamage": 10, "energy": 10, "flags": ["armored"], "armor": 0.3 },
+    { "id": "crow",       "name": "그림자까마귀","emoji": "🐦‍⬛", "element": "volt", "hp": 50,   "atk": 0,  "atkSpeed": 0,   "speed": 80, "baseDamage": 8,  "energy": 6, "flags": ["flying"] },
+    { "id": "splitter",   "name": "분열슬라임", "emoji": "🫧", "element": "water",  "hp": 120,  "atk": 7,  "atkSpeed": 1.0, "speed": 45, "baseDamage": 6,  "energy": 6, "flags": ["split"], "splitInto": "goo", "splitCount": 2 },
+    { "id": "shaman",     "name": "주술사",     "emoji": "🧙", "element": "grass",  "hp": 90,   "atk": 4,  "atkSpeed": 1.0, "speed": 40, "baseDamage": 5,  "energy": 8, "flags": ["healer"], "healAmount": 15, "healRadius": 150, "healIntervalSec": 3 },
+    { "id": "king_chimera","name": "킹 키메라", "emoji": "👹", "element": "fire",   "hp": 2800, "atk": 15, "atkSpeed": 0.8, "speed": 18, "baseDamage": 999,"energy": 0, "flags": ["boss"],
+      "boss": { "elementCycle": ["fire", "water", "volt", "grass", "rock"], "cycleSec": 30, "summonAtHpPct": 0.5, "summonId": "imp", "summonCount": 6 } }
+  ]
+}

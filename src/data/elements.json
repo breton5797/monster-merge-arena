@@ -1,0 +1,11 @@
+{
+  "elements": {
+    "fire":  { "name": "불",   "color": "#FF6B3D", "beats": "grass" },
+    "grass": { "name": "풀",   "color": "#5BC35B", "beats": "rock" },
+    "rock":  { "name": "바위", "color": "#A68A64", "beats": "volt" },
+    "volt":  { "name": "번개", "color": "#FFD23F", "beats": "water" },
+    "water": { "name": "물",   "color": "#3DA5FF", "beats": "fire" },
+    "none":  { "name": "무",   "color": "#9E9E9E", "beats": null }
+  },
+  "multiplier": { "advantage": 1.5, "disadvantage": 0.75, "neutral": 1.0 }
+}

@@ -1,0 +1,21 @@
+{
+  "_note": "재료 순서 무관. tier 1끼리만 레시피 합성. 목록에 없는 tier 1 조합 = chimera",
+  "chimeraId": "chimera",
+  "recipes": [
+    { "a": "ember_pup",    "b": "drip_slime",    "result": "steam_spirit",  "hint": "불과 물이 만나면 끓는다" },
+    { "a": "ember_pup",    "b": "sprout_bunny",  "result": "phoenix_chick", "hint": "새싹은 불꽃 속에서 다시 태어난다" },
+    { "a": "cinder_bat",   "b": "zap_mouse",     "result": "plasma_bat",    "hint": "하늘을 나는 불꽃에 전기를 더하면" },
+    { "a": "drip_slime",   "b": "pebble_turtle", "result": "mud_giant",     "hint": "물과 돌이 섞이면 질척해진다" },
+    { "a": "bubble_fish",  "b": "volt_bee",      "result": "jelly_zapper",  "hint": "바닷속 찌릿한 그것" },
+    { "a": "sprout_bunny", "b": "drip_slime",    "result": "lotus_fairy",   "hint": "물 위에 피는 꽃" },
+    { "a": "thorn_hog",    "b": "pebble_turtle", "result": "spike_shell",   "hint": "단단한 등껍질에 가시를" },
+    { "a": "thorn_hog",    "b": "ember_pup",     "result": "blaze_vine",    "hint": "불붙은 가시덤불" },
+    { "a": "gravel_golem", "b": "zap_mouse",     "result": "magnet_golem",  "hint": "돌에 전기가 흐르면 끌어당긴다" },
+    { "a": "volt_bee",     "b": "sprout_bunny",  "result": "queen_bee",     "hint": "벌은 꽃을 찾아간다" },
+    { "a": "cinder_bat",   "b": "pebble_turtle", "result": "lava_turtle",   "hint": "돌을 녹이는 불씨" },
+    { "a": "bubble_fish",  "b": "thorn_hog",     "result": "sea_urchin",    "hint": "바다에 사는 가시" },
+    { "a": "gravel_golem", "b": "bubble_fish",   "result": "coral_golem",   "hint": "바다의 바위" },
+    { "a": "zap_mouse",    "b": "ember_pup",     "result": "thunder_fox",   "hint": "번개처럼 빠른 여우" },
+    { "a": "cinder_bat",   "b": "sprout_bunny",  "result": "spore_bat",     "hint": "어두운 동굴의 버섯" }
+  ]
+}

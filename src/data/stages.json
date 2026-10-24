@@ -1,0 +1,40 @@
+{
+  "_note": "waves: atSec부터 durationSec 동안 everySec 간격으로 enemyId를 count마리씩 lanes 중 무작위 레인에 생성. hpScale은 해당 웨이브 적 HP 배율",
+  "stages": [
+    {
+      "id": 1, "name": "새싹 숲길", "durationSec": 180, "baseHp": 100, "bossRequired": false,
+      "background": "#1E3A2A",
+      "waves": [
+        { "atSec": 0,   "durationSec": 60, "enemyId": "goo",      "everySec": 3.6, "count": 1, "hpScale": 0.8 },
+        { "atSec": 40,  "durationSec": 60, "enemyId": "imp",      "everySec": 5.7, "count": 1, "hpScale": 0.8 },
+        { "atSec": 60,  "durationSec": 120,"enemyId": "goo",      "everySec": 2.6, "count": 1, "hpScale": 1.12 },
+        { "atSec": 100, "durationSec": 80, "enemyId": "beetle",   "everySec": 12.9, "count": 1, "hpScale": 0.8 },
+        { "atSec": 140, "durationSec": 40, "enemyId": "splitter", "everySec": 7.1, "count": 1, "hpScale": 0.8 }
+      ]
+    },
+    {
+      "id": 2, "name": "불꽃 협곡", "durationSec": 180, "baseHp": 100, "bossRequired": false,
+      "background": "#3A1E1E",
+      "waves": [
+        { "atSec": 0,   "durationSec": 180,"enemyId": "imp",      "everySec": 4.0, "count": 1, "hpScale": 0.66 },
+        { "atSec": 30,  "durationSec": 150,"enemyId": "crow",     "everySec": 10.9, "count": 1, "hpScale": 0.55 },
+        { "atSec": 60,  "durationSec": 120,"enemyId": "beetle",   "everySec": 12.7, "count": 1, "hpScale": 0.72 },
+        { "atSec": 90,  "durationSec": 90, "enemyId": "shaman",   "everySec": 21.8,"count": 1, "hpScale": 0.55 },
+        { "atSec": 120, "durationSec": 60, "enemyId": "goo",      "everySec": 2.2, "count": 2, "hpScale": 1.1 }
+      ]
+    },
+    {
+      "id": 3, "name": "폭풍 해안", "durationSec": 180, "baseHp": 100, "bossRequired": true,
+      "background": "#1E2A3A",
+      "waves": [
+        { "atSec": 0,   "durationSec": 150,"enemyId": "goo",      "everySec": 3.6, "count": 1, "hpScale": 0.72 },
+        { "atSec": 20,  "durationSec": 130,"enemyId": "splitter", "everySec": 11.1, "count": 1, "hpScale": 0.59 },
+        { "atSec": 40,  "durationSec": 110,"enemyId": "crow",     "everySec": 11.1, "count": 1, "hpScale": 0.59 },
+        { "atSec": 60,  "durationSec": 90, "enemyId": "beetle",   "everySec": 13.3, "count": 1, "hpScale": 0.68 },
+        { "atSec": 80,  "durationSec": 70, "enemyId": "shaman",   "everySec": 22.2,"count": 1, "hpScale": 0.54 },
+        { "atSec": 150, "durationSec": 1,  "enemyId": "king_chimera","everySec": 1, "count": 1, "hpScale": 1.0, "lane": "center" },
+        { "atSec": 150, "durationSec": 30, "enemyId": "imp",      "everySec": 6.7, "count": 1, "hpScale": 0.68 }
+      ]
+    }
+  ]
+}
